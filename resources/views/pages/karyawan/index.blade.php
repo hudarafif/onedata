@@ -180,45 +180,310 @@ Password: ${password}
 
 
     <!-- FILTER FORM -->
-    <div class="mb-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Filter & Pencarian Karyawan</h3>
-            <button type="button" onclick="toggleFilter()" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 lg:hidden">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"></path>
+    @php
+        $activeFilters = collect([
+            'search'          => request('search'),
+            'company_id'      => request('company_id'),
+            'division_id'     => request('division_id'),
+            'level_id'        => request('level_id'),
+            'lokasi_kerja'    => request('lokasi_kerja'),
+            'status_karyawan' => request('status_karyawan'),
+        ])->filter()->count();
+    @endphp
+
+    <div class="mb-6 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-md dark:border-gray-700 dark:bg-gray-800" id="filter-card">
+        {{-- Header --}}
+        <div class="flex items-center justify-between bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4">
+            <div class="flex items-center gap-3">
+                <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
+                    <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-base font-semibold text-white">Filter & Pencarian</h3>
+                    <p class="text-xs text-blue-100">Saring data karyawan sesuai kebutuhan</p>
+                </div>
+                @if($activeFilters > 0)
+                    <span class="ml-2 inline-flex items-center gap-1 rounded-full bg-white/25 px-2.5 py-0.5 text-xs font-semibold text-white ring-1 ring-white/40">
+                        <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        {{ $activeFilters }} aktif
+                    </span>
+                @endif
+            </div>
+            <button type="button" onclick="toggleFilter()"
+                    class="flex items-center gap-1.5 rounded-lg bg-white/15 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/25"
+                    id="filter-toggle-btn">
+                <svg class="h-4 w-4 transition-transform duration-300" id="filter-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                 </svg>
+                <span id="filter-toggle-label">Sembunyikan</span>
             </button>
         </div>
 
-        <form method="GET" action="{{ route('karyawan.index') }}" class="flex flex-col gap-4 md:flex-row md:items-end" id="filter-form">
-            <div class="flex-1">
-                <!-- <label for="search" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Pencarian Karyawan</label> -->
-                <div class="relative">
-                    <input type="text" name="search" id="search" value="{{ request('search') }}" placeholder="Cari nama, NIK, jabatan, lokasi kerja, divisi, perusahaan..."
-                           class="w-full rounded-lg border border-gray-300 bg-white py-2.5 pl-4 pr-10 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-900 dark:text-white dark:placeholder-gray-400">
-                    <div class="absolute inset-y-0 right-0 flex items-center pr-3">
-                        <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                        </svg>
+        {{-- Form Body --}}
+        <div id="filter-body" class="p-6">
+            <form method="GET" action="{{ route('karyawan.index') }}" id="filter-form">
+
+                {{-- Row 1: Search + Perusahaan + Divisi --}}
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+
+                    {{-- Search --}}
+                    <div class="group">
+                        <label for="search" class="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                            Pencarian
+                        </label>
+                        <div class="relative">
+                            <input type="text" name="search" id="search" value="{{ request('search') }}"
+                                   placeholder="Nama, NIK, atau telepon…"
+                                   class="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-4 pr-10 text-sm text-gray-900 transition placeholder:text-gray-400
+                                          focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20
+                                          dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 dark:focus:bg-gray-700
+                                          {{ request('search') ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20' : '' }}">
+                            <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                                <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                </svg>
+                            </span>
+                        </div>
+                    </div>
+
+                    {{-- Perusahaan --}}
+                    <div class="group">
+                        <label for="company_id" class="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                            </svg>
+                            Perusahaan
+                        </label>
+                        <div class="relative">
+                            <select name="company_id" id="company_id"
+                                    class="w-full appearance-none rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-4 pr-9 text-sm text-gray-900 transition
+                                           focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20
+                                           dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:bg-gray-700
+                                           {{ request('company_id') ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20 font-medium text-blue-700 dark:text-blue-300' : '' }}">
+                                <option value="">Semua Perusahaan</option>
+                                @foreach($filterOptions['companies'] as $company)
+                                    <option value="{{ $company['id'] }}" {{ request('company_id') == $company['id'] ? 'selected' : '' }}>
+                                        {{ $company['name'] }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                                <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </span>
+                        </div>
+                    </div>
+
+                    {{-- Divisi --}}
+                    <div class="group">
+                        <label for="division_id" class="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            Divisi
+                        </label>
+                        <div class="relative">
+                            <select name="division_id" id="division_id"
+                                    class="w-full appearance-none rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-4 pr-9 text-sm text-gray-900 transition
+                                           focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20
+                                           dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:bg-gray-700
+                                           {{ request('division_id') ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20 font-medium text-blue-700 dark:text-blue-300' : '' }}">
+                                <option value="">Semua Divisi</option>
+                                @foreach($filterOptions['divisions'] as $div)
+                                    <option value="{{ $div->id }}" {{ request('division_id') == $div->id ? 'selected' : '' }}>
+                                        {{ $div->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                                <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </span>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="flex items-center gap-2">
-                <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700 transition focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                    </svg>
-                    Cari
-                </button>
-                <a href="{{ route('karyawan.index') }}" class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                    </svg>
-                    Reset
-                </a>
-            </div>
-        </form>
+                {{-- Row 2: Level + Lokasi + Status --}}
+                <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+
+                    {{-- Level --}}
+                    <div class="group">
+                        <label for="level_id" class="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                            </svg>
+                            Level Jabatan
+                        </label>
+                        <div class="relative">
+                            <select name="level_id" id="level_id"
+                                    class="w-full appearance-none rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-4 pr-9 text-sm text-gray-900 transition
+                                           focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20
+                                           dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:bg-gray-700
+                                           {{ request('level_id') ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20 font-medium text-blue-700 dark:text-blue-300' : '' }}">
+                                <option value="">Semua Level</option>
+                                @foreach($filterOptions['levels'] as $lvl)
+                                    <option value="{{ $lvl->id }}" {{ request('level_id') == $lvl->id ? 'selected' : '' }}>
+                                        {{ $lvl->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                                <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </span>
+                        </div>
+                    </div>
+
+                    {{-- Lokasi --}}
+                    <div class="group">
+                        <label for="lokasi_kerja" class="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            Lokasi Kerja
+                        </label>
+                        <div class="relative">
+                            <select name="lokasi_kerja" id="lokasi_kerja"
+                                    class="w-full appearance-none rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-4 pr-9 text-sm text-gray-900 transition
+                                           focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20
+                                           dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:bg-gray-700
+                                           {{ request('lokasi_kerja') ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20 font-medium text-blue-700 dark:text-blue-300' : '' }}">
+                                <option value="">Semua Lokasi</option>
+                                @foreach($filterOptions['lokasi_kerja'] as $lokasi)
+                                    <option value="{{ $lokasi }}" {{ request('lokasi_kerja') == $lokasi ? 'selected' : '' }}>
+                                        {{ $lokasi }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                                <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </span>
+                        </div>
+                    </div>
+
+                    {{-- Status --}}
+                    <div class="group">
+                        <label for="status_karyawan" class="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            Status Karyawan
+                        </label>
+                        <div class="relative">
+                            <select name="status_karyawan" id="status_karyawan"
+                                    class="w-full appearance-none rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-4 pr-9 text-sm text-gray-900 transition
+                                           focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20
+                                           dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:bg-gray-700
+                                           {{ request('status_karyawan') ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20 font-medium text-blue-700 dark:text-blue-300' : '' }}">
+                                <option value="">Semua Status</option>
+                                @foreach($filterOptions['statuses'] as $status)
+                                    @if($status)
+                                        <option value="{{ $status }}" {{ request('status_karyawan') == $status ? 'selected' : '' }}>
+                                            {{ $status }}
+                                        </option>
+                                    @endif
+                                @endforeach
+                            </select>
+                            <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                                <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Action Buttons --}}
+                <div class="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-5 dark:border-gray-700">
+                    {{-- Active filter pills --}}
+                    <div class="flex flex-wrap items-center gap-2" id="active-filter-pills">
+                        @if(request('search'))
+                            <span class="inline-flex items-center gap-1.5 rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                                <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                                "{{ Str::limit(request('search'), 20) }}"
+                            </span>
+                        @endif
+                        @if(request('company_id'))
+                            @php $selectedCompany = collect($filterOptions['companies'])->firstWhere('id', request('company_id')); @endphp
+                            <span class="inline-flex items-center gap-1.5 rounded-full bg-indigo-100 px-3 py-1 text-xs font-medium text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300">
+                                <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16"/></svg>
+                                {{ $selectedCompany['name'] ?? 'Perusahaan' }}
+                            </span>
+                        @endif
+                        @if(request('division_id'))
+                            @php $selectedDiv = $filterOptions['divisions']->firstWhere('id', request('division_id')); @endphp
+                            <span class="inline-flex items-center gap-1.5 rounded-full bg-purple-100 px-3 py-1 text-xs font-medium text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                                <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                {{ $selectedDiv->name ?? 'Divisi' }}
+                            </span>
+                        @endif
+                        @if(request('level_id'))
+                            @php $selectedLvl = $filterOptions['levels']->firstWhere('id', request('level_id')); @endphp
+                            <span class="inline-flex items-center gap-1.5 rounded-full bg-cyan-100 px-3 py-1 text-xs font-medium text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300">
+                                <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                                {{ $selectedLvl->name ?? 'Level' }}
+                            </span>
+                        @endif
+                        @if(request('lokasi_kerja'))
+                            <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                                <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>
+                                {{ request('lokasi_kerja') }}
+                            </span>
+                        @endif
+                        @if(request('status_karyawan'))
+                            <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                                <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                {{ request('status_karyawan') }}
+                            </span>
+                        @endif
+                        @if($activeFilters === 0)
+                            <span class="text-xs text-gray-400 dark:text-gray-500 italic">Belum ada filter aktif</span>
+                        @endif
+                    </div>
+
+                    <div class="flex items-center gap-2 ml-auto">
+                        @if($activeFilters > 0)
+                            <a href="{{ route('karyawan.index') }}"
+                               class="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-medium text-red-600 shadow-sm transition hover:bg-red-100 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                                Hapus Filter
+                            </a>
+                        @else
+                            <a href="{{ route('karyawan.index') }}"
+                               class="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm font-medium text-gray-600 shadow-sm transition hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                </svg>
+                                Reset
+                            </a>
+                        @endif
+                        <button type="submit"
+                                class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-md shadow-blue-500/30 transition hover:from-blue-700 hover:to-indigo-700 hover:shadow-blue-500/40 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 active:scale-95">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+                            </svg>
+                            Terapkan Filter
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
     </div>
 
     <!-- TABLE -->
@@ -399,8 +664,20 @@ Password: ${password}
 
 <script>
 function toggleFilter() {
-    const form = document.getElementById('filter-form');
-    form.classList.toggle('hidden');
+    const body    = document.getElementById('filter-body');
+    const chevron = document.getElementById('filter-chevron');
+    const label   = document.getElementById('filter-toggle-label');
+
+    const isHidden = body.style.display === 'none';
+    if (isHidden) {
+        body.style.display = '';
+        chevron.style.transform = 'rotate(0deg)';
+        label.textContent = 'Sembunyikan';
+    } else {
+        body.style.display = 'none';
+        chevron.style.transform = 'rotate(-90deg)';
+        label.textContent = 'Tampilkan';
+    }
 }
 
 // Initialize on page load

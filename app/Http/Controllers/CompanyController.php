@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Company;
 use App\Models\Holding;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class CompanyController extends Controller
 {
@@ -12,7 +13,6 @@ class CompanyController extends Controller
     {
         $companies = Company::whereNull('parent_id')->with(['holding', 'parent'])->get()->map(function ($c) {
             $label = $c->holding ? $c->holding->name : '-';
-            // Parent logic unnecessary here if parent_id is null, but kept for safety/consistency if logic changes
             if ($c->parent) {
                  $label .= ' -> ' . $c->parent->name;
             }
@@ -33,12 +33,8 @@ class CompanyController extends Controller
     public function create(Request $request)
     {
         $holdings = Holding::all();
-        // Get potential parent companies (those that don't have a parent themselves, i.e., top-level companies under a holding)
-        // Or should we allow unlimited nesting? User said "cucu perusahaan" specifically, implying max 3 levels (Holding -> Company -> Subsidiary).
-        // If "Perusahaan" is level 1 (under Holding), then "Anak Perusahaan" is level 2.
-        // So potential parents are companies that have NO parent.
-        $companies = Company::whereNull('parent_id')->get(); 
-        
+        $companies = Company::whereNull('parent_id')->get();
+
         $selectedHoldingId = $request->query('holding_id');
         return view('pages.organization.company.create', compact('holdings', 'selectedHoldingId', 'companies'));
     }
@@ -46,8 +42,8 @@ class CompanyController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
-            'holding_id' => 'required|exists:holdings,id',
+            'name'      => 'required|string|max:255',
+            'holding_id'=> 'required|exists:holdings,id',
             'parent_id' => 'nullable|exists:companies,id'
         ]);
         Company::create($request->only('name', 'holding_id', 'parent_id'));
@@ -56,14 +52,13 @@ class CompanyController extends Controller
 
     public function show(Company $company)
     {
-        $company->load(['divisions', 'departments', 'units']);
+        $company->load(['divisions', 'departments', 'units', 'children']);
         return view('pages.organization.company.show', compact('company'));
     }
 
     public function edit(Company $company)
     {
         $holdings = Holding::all();
-        // Potential parents: No parent, and not self.
         $companies = Company::whereNull('parent_id')->where('id', '!=', $company->id)->get();
         return view('pages.organization.company.edit', compact('company', 'holdings', 'companies'));
     }
@@ -71,8 +66,8 @@ class CompanyController extends Controller
     public function update(Request $request, Company $company)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
-            'holding_id' => 'required|exists:holdings,id',
+            'name'      => 'required|string|max:255',
+            'holding_id'=> 'required|exists:holdings,id',
             'parent_id' => 'nullable|exists:companies,id'
         ]);
         $company->update($request->only('name', 'holding_id', 'parent_id'));
@@ -81,7 +76,53 @@ class CompanyController extends Controller
 
     public function destroy(Company $company)
     {
+        // Hapus gambar struktur jika ada
+        if ($company->struktur_image) {
+            Storage::disk('public')->delete($company->struktur_image);
+        }
         $company->delete();
         return redirect()->route('organization.company.index')->with('success', 'Company deleted successfully.');
+    }
+
+    /**
+     * Upload gambar struktur organisasi perusahaan.
+     */
+    public function uploadStruktur(Request $request, Company $company)
+    {
+        $request->validate([
+            'struktur_image' => 'required|image|mimes:jpg,jpeg,png,gif,svg,webp|max:5120',
+        ], [
+            'struktur_image.required' => 'Pilih file gambar terlebih dahulu.',
+            'struktur_image.image'    => 'File harus berupa gambar.',
+            'struktur_image.mimes'    => 'Format gambar yang didukung: JPG, PNG, GIF, SVG, WEBP.',
+            'struktur_image.max'      => 'Ukuran gambar maksimal 5 MB.',
+        ]);
+
+        // Hapus gambar lama jika ada
+        if ($company->struktur_image) {
+            Storage::disk('public')->delete($company->struktur_image);
+        }
+
+        $path = $request->file('struktur_image')->store('struktur_perusahaan', 'public');
+        $company->update(['struktur_image' => $path]);
+
+        return redirect()
+            ->route('organization.company.show', $company)
+            ->with('success', 'Gambar struktur organisasi berhasil diupload.');
+    }
+
+    /**
+     * Hapus gambar struktur organisasi perusahaan.
+     */
+    public function deleteStruktur(Company $company)
+    {
+        if ($company->struktur_image) {
+            Storage::disk('public')->delete($company->struktur_image);
+            $company->update(['struktur_image' => null]);
+        }
+
+        return redirect()
+            ->route('organization.company.show', $company)
+            ->with('success', 'Gambar struktur organisasi berhasil dihapus.');
     }
 }

@@ -106,20 +106,6 @@ class MenuHelper
                 'icon' => 'task',
                 'name' => 'Rekrutmen',
                 'subItems' => [
-                    ['name' => 'Dashboard Rekrutmen', 'path' => route('rekrutmen.dashboard')],
-                    ['name' => 'Manage Posisi', 'path' => route('rekrutmen.posisi.index')],
-                    ['name' => 'Manage Kandidat', 'path' => route('rekrutmen.kandidat.index')],
-                    ['name' => 'Kalender Rekrutmen', 'path' => route('rekrutmen.calendar')],
-                    ['name' => 'Interview HR', 'path' => route('rekrutmen.interview_hr.index')],
-                    ['name' => 'Database WIG', 'path' => route('rekrutmen.wig.index')],
-                    ['name' => 'Pemberkasan Monitor', 'path' => route('rekrutmen.metrics.pemberkasan.page')],
-                ],
-                // 'path' => '/rekrutmen',
-            ],
-            [
-                'icon' => 'forms',
-                'name' => 'Kontrak & Pekerjaan',
-                'subItems' => [
                     ['name' => 'Dashboard Rekrutmen', 'path' => '/rekrutmen'],
                     ['name' => 'Manage Posisi', 'path' => '/rekrutmen/posisi-manage'],
                     ['name' => 'Manage Kandidat', 'path' => '/rekrutmen/kandidat'],
@@ -201,31 +187,63 @@ class MenuHelper
                 ['name' => 'KPI Karyawan', 'path' => '/kpi/dashboard'],
                 ['name' => 'KBI Karyawan', 'path' => '/kbi/dashboard'],
             ],
-            [
-                'icon' => 'charts',
-                'name' => 'KPI Karyawan', // Nama menu diperjelas
-                'path' => '/kpi/dashboard', // <-- Link baru ke halaman index
-            ],
         ];
-    }
-      // --- [BARU] Menambahkan Menu Khusus Performance (KPI) ---
-    public static function getPerformanceItems()
-    {
-        return [
-            [
-                'icon' => 'charts',
-                'name' => 'KPI Karyawan', // Nama menu diperjelas
-                'path' => '/kpi/dashboard', // <-- Link baru ke halaman index
-            ],
-        ];
-    }
+
+        if ($user && $user->hasRole(['admin', 'superadmin'])) {
+            $menu[count($menu) - 1]['subItems'][] = [
+                'name' => 'Master Perspektif KPI',
+                'path' => '/kpi/perspectives',
+            ];
+        }
+
+        if ($roleMatches(['admin', 'superadmin', 'direktur', 'manager', 'GM', 'senior_manager', 'supervisor'])) {
+            // Tambahkan ke subItems Penilaian Karyawan (roleMatches memperhitungkan role manajemen + role turunan dari pekerjaan)
+            $menu[count($menu) - 1]['subItems'][] = ['name' => 'Monitoring KBI', 'path' => '/kbi/monitoring'];
+        }
+
+        // Monitoring Kompetensi LMS (Khusus tim manajemen / HR)
+        if ($roleMatches(['admin', 'superadmin', 'direktur', 'manager', 'GM', 'senior_manager'])) {
+            $menu[count($menu) - 1]['subItems'][] = ['name' => 'Monitoring Kompetensi', 'path' => '/kompetensi/monitoring'];
+        }
+
+        // Rekap Performance (Supervisor TIDAK boleh lihat)
+        if ($roleMatches(['admin', 'superadmin', 'direktur', 'manager', 'GM', 'senior_manager'])) {
+            $menu[count($menu) - 1]['subItems'][] = ['name' => 'Rekap Performance', 'path' => '/performance/rekap'];
+        }
+        // Manajemen User
+        if ($user->hasRole('superadmin')) {
+            $menu[] = [
+                'icon' => 'authentication',
+                'name' => 'Manajemen User',
+                'path' => '/users',
+            ];
+        }
 
 
+        return $menu;
+    }
 
     public static function getOthersItems()
     {
         $user = Auth::user();
         $items = [];
+
+        // Profile link
+        $items[] = [
+            'icon' => 'user-profile',
+            'name' => 'Profile',
+            'path' => '/profile',
+        ];
+
+        // Sign out action (rendered as a button that submits a POST logout form)
+        $items[] = [
+            'icon' => 'signout',
+            'name' => 'Sign Out',
+            'action' => 'signout',
+        ];
+
+        return $items;
+    }
 
     public static function getMenuGroups()
     {
@@ -238,11 +256,6 @@ class MenuHelper
                 'title' => 'Others',
                 'items' => self::getOthersItems()
             ],
-              // --- APAKAH BAGIAN INI SUDAH ADA? ---
-            // [
-            //     'title' => 'Performance',
-            //     'items' => self::getPerformanceItems() // <--- INI WAJIB ADA
-            // ]
         ];
     }
 
@@ -345,5 +358,4 @@ class MenuHelper
 
         return $icons[$iconName] ?? '<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="currentColor"/></svg>';
     }
-
 }

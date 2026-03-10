@@ -82,6 +82,43 @@ class KaryawanController extends Controller
             }
         }
 
+        // Apply custom filters
+        if ($request->filled('level_id')) {
+            $query->whereHas('pekerjaan', function($q) use ($request) {
+                $q->where('level_id', $request->level_id);
+            });
+        }
+
+        if ($request->filled('division_id')) {
+            $query->whereHas('pekerjaan', function($q) use ($request) {
+                $q->where('division_id', $request->division_id);
+            });
+        }
+
+        if ($request->filled('company_id')) {
+            $companyVal = $request->company_id;
+            if (str_starts_with($companyVal, 'holding_')) {
+                $holdingId = str_replace('holding_', '', $companyVal);
+                $query->whereHas('pekerjaan', function($q) use ($holdingId) {
+                    $q->where('holding_id', $holdingId);
+                });
+            } else {
+                $query->whereHas('pekerjaan', function($q) use ($companyVal) {
+                    $q->where('company_id', $companyVal);
+                });
+            }
+        }
+
+        if ($request->filled('lokasi_kerja')) {
+            $query->whereHas('pekerjaan', function($q) use ($request) {
+                $q->where('Lokasi_Kerja', $request->lokasi_kerja);
+            });
+        }
+        
+        if ($request->filled('status_karyawan')) {
+            $query->where('Status', $request->status_karyawan);
+        }
+
         // Apply search filter
         if ($request->filled('search')) {
             $search = $request->search;
@@ -109,7 +146,50 @@ class KaryawanController extends Controller
 
         $karyawans = $query->orderBy('id_karyawan', 'desc')->paginate(10)->appends($request->query());
 
-        return view('pages.karyawan.index', compact('karyawans'));
+        // Get filter options
+        $filterOptions = [
+            'levels' => Level::orderBy('level_order')->get(),
+            'divisions' => Division::orderBy('name')->get(),
+            'lokasi_kerja' => getlokasikerja('pekerjaan', 'Lokasi_Kerja'),
+            'statuses' => Karyawan::select('Status')->whereNotNull('Status')->where('Status', '!=', '')->distinct()->pluck('Status'),
+        ];
+
+        // Companies grouping mapped to match create
+        $holdings = \App\Models\Holding::all()->map(function($h) {
+            return [
+                'id' => 'holding_' . $h->id, 
+                'name' => $h->name, 
+                'type' => 'holding',
+            ];
+        });
+
+        $allCompanies = \App\Models\Company::with('holding')->orderBy('name')->get();
+        
+        $parentCompanies = $allCompanies->whereNull('parent_id')->map(function($c) {
+            return [
+                'id' => $c->id, 
+                'name' => $c->name, 
+                'type' => 'company', 
+            ];
+        });
+        
+        $subsidiaries = $allCompanies->whereNotNull('parent_id')->map(function($c) {
+            $parentName = $c->parent ? $c->parent->name : '';
+            return [
+                'id' => $c->id, 
+                'name' => $c->name . ($parentName ? ' (dari ' . $parentName . ')' : ''), 
+                'type' => 'subsidiary', 
+            ];
+        });
+        
+        $companies = collect();
+        if ($holdings->count() > 0) $companies = $companies->merge($holdings);
+        if ($parentCompanies->count() > 0) $companies = $companies->merge($parentCompanies);
+        if ($subsidiaries->count() > 0) $companies = $companies->merge($subsidiaries);
+        
+        $filterOptions['companies'] = $companies->values();
+
+        return view('pages.karyawan.index', compact('karyawans', 'filterOptions'));
     }
 
     private function parseDate($date)

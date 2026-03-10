@@ -10,7 +10,7 @@ class Company extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'holding_id', 'parent_id'];
+    protected $fillable = ['name', 'holding_id', 'parent_id', 'struktur_image'];
 
     public function parent()
     {
