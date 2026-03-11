@@ -67,9 +67,6 @@ class MenuHelper
             'path' => '/dashboard',
         ];
 
-
-
-
         // =============================================================
         // 5. MENU STRUKTUR PEKERJAAN (Untuk admin, superadmin)
         // =============================================================
@@ -91,49 +88,86 @@ class MenuHelper
         }
 
         // =============================================================
-        // 2. MENU KHUSUS (Hanya Admin, HRD, Manager)
+        // 2. MENU KHUSUS (HR, Manager, dsb berdasarkan Struktur Pekerjaan)
         // =============================================================
-        // Logika: "Jika User ADA dan User BUKAN Staff"
-        if ($user && $user->hasRole(['admin', 'superadmin'])) {
+        
+        $isHR = false;
+        $isManagerOrLeader = false;
 
-            $menu[] = [
-                'icon' => 'user-profile',
-                'name' => 'Data Karyawan',
-                'path' => '/karyawan',
-            ];
+        foreach ($derivedRoles as $dRole) {
+            $r = strtolower($dRole);
+            if (str_contains($r, 'manager') || str_contains($r, 'supervisor') || str_contains($r, 'gm') || str_contains($r, 'direktur')) {
+                $isManagerOrLeader = true;
+                break;
+            }
+        }
+        
+        // Memastikan apakah dari pekerjaan user tercantum kata HR atau Human Resource di divisinya/departemennya
+        if ($karyawan) {
+            $pekerjaan = $karyawan->pekerjaanTerkini()->first() ?? $karyawan->pekerjaan()->first();
+            if ($pekerjaan) {
+                 $deptName = strtolower($pekerjaan->department->name ?? '');
+                 $divName = strtolower($pekerjaan->division->name ?? '');
+                 
+                 if (str_contains($deptName, 'hr') || str_contains($deptName, 'human') || str_contains($divName, 'Human Resource')) {
+                     $isHR = true;
+                 }
+            }
+        }
+
+        // Logika: Membuka menu Rekrutmen (dan di dalamnya ada FPK) jika user punya divisi HRD, seorang manajer, atau admin eksplisit.
+        if ($isHR || $isManagerOrLeader || $user->hasRole(['admin', 'superadmin','manager','general manager' ])) {
+
+            if ($user && $user->hasRole(['admin', 'superadmin'])) {
+                $menu[] = [
+                    'icon' => 'user-profile',
+                    'name' => 'Data Karyawan',
+                    'path' => '/karyawan',
+                ];
+            }
+
+            $rekrutmenSubItems = [];
+
+            // Menu FPK tersedia untuk semua (HR, manager, admin)
+            $rekrutmenSubItems[] = ['name' => 'Pengajuan FPK', 'path' => '/rekrutmen/fpk'];
+            $rekrutmenSubItems[] = ['name' => 'History FPK', 'path' => '/rekrutmen/fpk/history'];
+
+            // Menu rekrutmen lengkap hanya untuk HR, admin, superadmin
+            if ($isHR || ($user && $user->hasRole(['admin', 'superadmin']))) {
+                array_unshift($rekrutmenSubItems, ['name' => 'Dashboard Rekrutmen', 'path' => '/rekrutmen']);
+                $rekrutmenSubItems[] = ['name' => 'Manage Posisi', 'path' => '/rekrutmen/posisi-manage'];
+                $rekrutmenSubItems[] = ['name' => 'Manage Kandidat', 'path' => '/rekrutmen/kandidat'];
+                $rekrutmenSubItems[] = ['name' => 'Kalender Rekrutmen', 'path' => '/rekrutmen/calendar'];
+                $rekrutmenSubItems[] = ['name' => 'Interview HR', 'path' => '/rekrutmen/interview_hr'];
+                $rekrutmenSubItems[] = ['name' => 'Kandidat Lanjut User', 'path' => '/rekrutmen/kandidat_lanjut_user'];
+                $rekrutmenSubItems[] = ['name' => 'Pemberkasan', 'path' => '/rekrutmen/pemberkasan'];
+            }
 
             $menu[] = [
                 'icon' => 'task',
                 'name' => 'Rekrutmen',
-                'subItems' => [
-                    ['name' => 'Dashboard Rekrutmen', 'path' => '/rekrutmen'],
-                    ['name' => 'Manage Posisi', 'path' => '/rekrutmen/posisi-manage'],
-                    ['name' => 'Manage Kandidat', 'path' => '/rekrutmen/kandidat'],
-                    ['name' => 'Kalender Rekrutmen', 'path' => '/rekrutmen/calendar'],
-                    ['name' => 'Interview HR', 'path' => '/rekrutmen/interview_hr'],
-                    ['name' => 'Kandidat Lanjut User', 'path' => '/rekrutmen/kandidat_lanjut_user'],
-                    ['name' => 'Pemberkasan', 'path' => '/rekrutmen/pemberkasan'],
-                    // ['name' => 'Database WIG',         'path' => '/rekrutmen/wig'],
-                ],
+                'subItems' => $rekrutmenSubItems,
             ];
 
-            $menu[] = [
-                'icon' => 'forms',
-                'name' => 'Training',
-                'path' => '/training',
-            ];
+            if ($user && $user->hasRole(['admin', 'superadmin'])) {
+                $menu[] = [
+                    'icon' => 'forms',
+                    'name' => 'Training',
+                    'path' => '/training',
+                ];
 
-            $menu[] = [
-                'icon' => 'user-shield',
-                'name' => 'Onboarding Karyawan',
-                'path' => '/onboarding',
-            ];
+                $menu[] = [
+                    'icon' => 'user-shield',
+                    'name' => 'Onboarding Karyawan',
+                    'path' => '/onboarding',
+                ];
 
-            $menu[] = [
-                'icon' => 'chartline_down',
-                'name' => 'Data Turnover',
-                'path' => '/turnover',
-            ];
+                $menu[] = [
+                    'icon' => 'chartline_down',
+                    'name' => 'Data Turnover',
+                    'path' => '/turnover',
+                ];
+            }
         }
 
 

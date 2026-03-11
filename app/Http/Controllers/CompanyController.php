@@ -78,10 +78,24 @@ class CompanyController extends Controller
     {
         // Hapus gambar struktur jika ada
         if ($company->struktur_image) {
-            Storage::disk('public')->delete($company->struktur_image);
+            $this->deleteImageFile($company->struktur_image);
         }
         $company->delete();
         return redirect()->route('organization.company.index')->with('success', 'Company deleted successfully.');
+    }
+
+    /**
+     * Helper penghapusan gambar (kompatibel dgn uploads baru & storage lama)
+     */
+    private function deleteImageFile($path)
+    {
+        if (str_starts_with($path, 'uploads/')) {
+            if (file_exists(public_path($path))) {
+                unlink(public_path($path));
+            }
+        } else {
+            Storage::disk('public')->delete($path);
+        }
     }
 
     /**
@@ -100,10 +114,15 @@ class CompanyController extends Controller
 
         // Hapus gambar lama jika ada
         if ($company->struktur_image) {
-            Storage::disk('public')->delete($company->struktur_image);
+            $this->deleteImageFile($company->struktur_image);
         }
 
-        $path = $request->file('struktur_image')->store('struktur_perusahaan', 'public');
+        $file = $request->file('struktur_image');
+        $filename = time() . '_' . $file->getClientOriginalName();
+        // Simpan langsung ke folder public tanpa symlink
+        $file->move(public_path('uploads/struktur_perusahaan'), $filename);
+        $path = 'uploads/struktur_perusahaan/' . $filename;
+
         $company->update(['struktur_image' => $path]);
 
         return redirect()
@@ -117,7 +136,7 @@ class CompanyController extends Controller
     public function deleteStruktur(Company $company)
     {
         if ($company->struktur_image) {
-            Storage::disk('public')->delete($company->struktur_image);
+            $this->deleteImageFile($company->struktur_image);
             $company->update(['struktur_image' => null]);
         }
 

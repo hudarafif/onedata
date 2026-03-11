@@ -13,6 +13,7 @@ use App\Http\Controllers\KpiPerspectiveController;
 use App\Http\Controllers\KbiController;
 use App\Http\Controllers\WigRekrutmenController;
 use App\Http\Controllers\PosisiController;
+use App\Http\Controllers\FpkController;
 use App\Http\Controllers\RekrutmenDailyController;
 use App\Http\Controllers\RekrutmenCalendarController;
 use App\Http\Controllers\InterviewHrController;
@@ -78,14 +79,21 @@ Route::middleware(['auth', 'role:admin|superadmin'])->group(function () {
             Route::resource('users', UserController::class);
             Route::delete('/users/batch-delete', [UserController::class , 'batchDelete'])->name('users.batchDelete');
         }
-        );
+    );
+});
 
-        // --- REKRUTMEN MODULE ---
-        Route::prefix('rekrutmen')->name('rekrutmen.')->group(function () {
+// --- REKRUTMEN MODULE ---
+Route::middleware(['auth'])->prefix('rekrutmen')->name('rekrutmen.')->group(function () {
+    // Dashboards & Main Pages
+    Route::get('/', [RecruitmentDashboardController::class , 'index'])->name('dashboard');
+    Route::get('calendar', [RecruitmentDashboardController::class , 'calendarPage'])->name('calendar');
 
-            // Dashboards & Main Pages
-            Route::get('/', [RecruitmentDashboardController::class , 'index'])->name('dashboard');
-            Route::get('calendar', [RecruitmentDashboardController::class , 'calendarPage'])->name('calendar');
+            // FPK (Form Permintaan Karyawan)
+            Route::get('fpk/history', [FpkController::class, 'history'])->name('fpk.history');
+            Route::post('fpk/{fpk}/approve', [FpkController::class, 'approve'])->name('fpk.approve');
+            Route::post('fpk/{fpk}/forward', [FpkController::class, 'forwardToHrManager'])->name('fpk.forward');
+            Route::post('fpk/{fpk}/reject', [FpkController::class, 'reject'])->name('fpk.reject');
+            Route::resource('fpk', FpkController::class);
 
             // WIG & Positions
             Route::get('wig', [WigRekrutmenController::class , 'index'])->name('wig.index');
@@ -174,8 +182,8 @@ Route::middleware(['auth', 'role:admin|superadmin'])->group(function () {
     // Route::resource('wig-rekrutmen', WigRekrutmenController::class);
     
     // Route::resource('karyawan', KaryawanController::class);   
-    });
-
+    
+    
 Route::middleware(['auth', 'role:admin|superadmin'])->prefix('kpi')->name('kpi.')->group(function () {
     Route::get('perspectives', [KpiPerspectiveController::class , 'index'])->name('perspectives.index');
     Route::post('perspectives', [KpiPerspectiveController::class , 'store'])->name('perspectives.store');

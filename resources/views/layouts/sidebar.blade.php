@@ -5,7 +5,8 @@
 
     // 1. DEFINISI RULE DI ATAS (Supaya rapi)
     // Pastikan nama ini SAMA PERSIS dengan 'name' di MenuHelper
-    $restrictedMenus = ['Manajemen User', 'Training', 'Rekrutmen', 'Data Karyawan'];
+    // Rekrutmen telah dikelola hak aksesnya lewat MenuHelper (Manager/HR)
+    $restrictedMenus = ['Manajemen User', 'Training', 'Data Karyawan'];
 
     // Ambil role user
     $user = auth()->user();

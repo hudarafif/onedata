@@ -138,7 +138,7 @@
                         {{-- Preview thumbnail --}}
                         <div class="group relative w-full cursor-zoom-in overflow-hidden rounded-xl border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900 md:flex-1"
                              @click="openLightbox = true">
-                            <img src="{{ asset('storage/' . $company->struktur_image) }}"
+                            <img src="{{ str_starts_with($company->struktur_image, 'uploads/') ? asset($company->struktur_image) : asset('storage/' . $company->struktur_image) }}"
                                  alt="Struktur Organisasi {{ $company->name }}"
                                  class="h-48 w-full object-contain transition duration-300 group-hover:scale-[1.02] sm:h-64 md:h-72">
                             <div class="absolute inset-0 flex items-center justify-center bg-black/0 transition duration-300 group-hover:bg-black/20">
@@ -192,7 +192,7 @@
                          @keydown.escape.window="openLightbox = false"
                          @click.self="openLightbox = false">
                         <div class="relative max-h-[90vh] max-w-[95vw] sm:max-w-[90vw]">
-                            <img src="{{ asset('storage/' . $company->struktur_image) }}"
+                            <img src="{{ str_starts_with($company->struktur_image, 'uploads/') ? asset($company->struktur_image) : asset('storage/' . $company->struktur_image) }}"
                                  alt="Struktur Organisasi {{ $company->name }}"
                                  class="max-h-[85vh] max-w-[95vw] rounded-xl object-contain shadow-2xl sm:max-w-[90vw]">
                             <button @click="openLightbox = false"
