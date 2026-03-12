@@ -8,6 +8,7 @@
 
     <!-- <title>{{ $title ?? 'Dashboard' }} | ONE DATA HR</title> -->
     <title>One Data</title>
+    <link rel="icon" type="image/png" href="{{ asset('logo.png') }}">
     <!-- Scripts -->
     @php $viteManifest = public_path('build/manifest.json'); @endphp
     @if (file_exists($viteManifest))
