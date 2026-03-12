@@ -5,69 +5,81 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Fpk;
+use App\Models\FpkApprovalLog;
 use App\Models\Division;
 use App\Models\Department;
+use App\Models\Karyawan;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class FpkController extends Controller
 {
     public function __construct()
     {
-        // 1. Dapatkan user admin/superadmin (langsung lolos)
         $this->middleware(\Closure::fromCallable(function ($request, $next) {
             $user = Auth::user();
             if ($user && $user->hasRole(['admin', 'superadmin'])) {
                 return $next($request);
             }
 
-            // 2. Jika bukan admin, cek apakah dia manajer atau punya divisi HR
-            $isHR = false;
-            $isManagerOrLeader = false;
+            $karyawan = Karyawan::where('user_id', $user->id)->first() ?: Karyawan::where('nik', $user->nik)->first();
             
-            $karyawan = \App\Models\Karyawan::where('user_id', $user->id)->first();
-            if (!$karyawan && !empty($user->nik)) {
-                $karyawan = \App\Models\Karyawan::where('nik', $user->nik)->first();
-            }
-
             if ($karyawan) {
                 $pekerjaan = $karyawan->pekerjaanTerkini()->first() ?? $karyawan->pekerjaan()->first();
                 if ($pekerjaan) {
                     $levelName = strtolower($pekerjaan->level->name ?? '');
-                    $posName   = strtolower($pekerjaan->position->name ?? '');
-                    $jabatan   = strtolower($pekerjaan->Jabatan ?? '');
-
-                    $derivedRoles = [$levelName, $posName, $jabatan];
-
-                    foreach ($derivedRoles as $dRole) {
-                        $r = strtolower($dRole);
-                        if (str_contains($r, 'manager') || str_contains($r, 'supervisor') || str_contains($r, 'gm') || str_contains($r, 'direktur')) {
-                            $isManagerOrLeader = true;
-                            break;
-                        }
-                    }
-
                     $deptName = strtolower($pekerjaan->department->name ?? '');
                     $divName  = strtolower($pekerjaan->division->name ?? '');
-                    if (str_contains($deptName, 'hr') || str_contains($deptName, 'human') || str_contains($divName, 'hr') || str_contains($divName, 'human resource')) {
-                        $isHR = true;
+
+                    if (str_contains($levelName, 'manager') || str_contains($levelName, 'supervisor') || str_contains($levelName, 'gm') || str_contains($levelName, 'direktur')) {
+                        return $next($request);
+                    }
+                    if (str_contains($deptName, 'hr') || str_contains($divName, 'hr')) {
+                        return $next($request);
+                    }
+                    if (str_contains($deptName, 'finance') || str_contains($divName, 'finance')) {
+                        return $next($request);
                     }
                 }
             }
 
-            // Izinkan jika HR atau Manajer
-            if ($isHR || $isManagerOrLeader) {
-                return $next($request);
-            }
-
-            // Jika tidak memenuhi kriteria di atas, redirect / error
-            abort(403, 'Akses Ditolak. Anda bukan bagian dari Manajemen atau Tim HR.');
+            abort(403, 'Akses Ditolak. Anda bukan bagian dari Manajemen, Finance, atau Tim HR.');
         }));
     }
+    
+
     public function index()
     {
-        // Akan menampilkan daftar FPK (buat role manager khusus miliknya, GM bisa lihat semua dll)
         $fpk = Fpk::with('division', 'department')->orderBy('created_at', 'desc')->paginate(10);
         return view('pages.rekrutmen.fpk.index', compact('fpk'));
+    }
+
+    public function history()
+    {
+        $user = Auth::user();
+        $karyawan = Karyawan::where('user_id', $user->id)->first() ?: Karyawan::where('nik', $user->nik)->first();
+        
+        $fpkQuery = Fpk::with('division', 'department')->orderBy('created_at', 'desc');
+
+        if (!$user->hasRole(['admin', 'superadmin'])) {
+            $pekerjaanDesc = $karyawan ? ($karyawan->pekerjaanTerkini()->first() ?? $karyawan->pekerjaan()->first()) : null;
+            $isHR = $pekerjaanDesc && (str_contains(strtolower($pekerjaanDesc->department->name ?? ''), 'hr') || str_contains(strtolower($pekerjaanDesc->division->name ?? ''), 'hr'));
+
+            if (!$isHR) {
+                $deptId = $pekerjaanDesc ? $pekerjaanDesc->department_id : null;
+                $divId = $pekerjaanDesc ? $pekerjaanDesc->division_id : null;
+                $userId = $user->id;
+                
+                $fpkQuery->where(function ($q) use ($deptId, $divId, $userId) {
+                    $q->where('department_id', $deptId)
+                      ->orWhere('division_id', $divId)
+                      ->orWhere('created_by', $userId);
+                });
+            }
+        }
+
+        $fpk = $fpkQuery->get();
+        return view('pages.rekrutmen.fpk.history', compact('fpk'));
     }
 
     public function create()
@@ -79,8 +91,9 @@ class FpkController extends Controller
 
     public function store(Request $request)
     {
-        // Validasi input
         $request->validate([
+            'division_id'           => 'required|exists:divisions,id',
+            'department_id'         => 'nullable|exists:departments,id',
             'nama_jabatan'          => 'required|string|max:255',
             'jumlah_kebutuhan'      => 'required|integer|min:1',
             'tanggal_mulai_bekerja' => 'required|date',
@@ -90,18 +103,17 @@ class FpkController extends Controller
             'lokasi_kerja'          => 'required|string|max:255',
         ]);
 
-        // Generate Nomor FPK unik (misal: FPK/2026/03/001)
         $bulan = date('m');
         $tahun = date('Y');
         $count = Fpk::whereYear('created_at', $tahun)->whereMonth('created_at', $bulan)->count() + 1;
         $nomorUrut = str_pad($count, 3, "0", STR_PAD_LEFT);
-
-        // Bersihkan array yang kosong sebelum dimasukkan ke DB
         $filterArray = fn($arr) => !empty($arr) ? array_values(array_filter($arr, fn($v) => trim($v) !== '')) : null;
 
-        Fpk::create([
+        $status = $request->input('action') === 'submit' ? 'Pending HR Admin' : 'Draft';
+
+        $fpk = Fpk::create([
             'nomor_fpk'                => "FPK/$tahun/$bulan/$nomorUrut",
-            'division_id'              => $request->division_id ?: null,
+            'division_id'              => $request->division_id,
             'department_id'            => $request->department_id ?: null,
             'nama_jabatan'             => $request->nama_jabatan,
             'grade'                    => $request->grade ?: null,
@@ -129,21 +141,27 @@ class FpkController extends Controller
             'soft_competency'          => $filterArray($request->soft_competency),
             'test_dibutuhkan'          => $request->test_dibutuhkan ?: null,
             'sarana_prasarana'         => $request->sarana_prasarana ?: null,
-            'status_fpk'               => 'Pending HR Admin',
+            'status_fpk'               => $status,
+            'created_by'               => Auth::id(),
         ]);
 
-        return redirect()->route('rekrutmen.fpk.history')->with('success', 'Form Permintaan Karyawan berhasil diajukan dan sedang direviu oleh HR Admin.');
+        $this->storeApprovalLog($fpk->id, $status === 'Draft' ? 'create_draft' : 'submit', null, $status);
+
+        return redirect()->route('rekrutmen.fpk.history')->with('success', $status === 'Draft' ? 'FPK disimpan sebagai Draft.' : 'FPK berhasil diajukan.');
     }
 
     public function show($id)
     {
-        $fpk = Fpk::with(['division', 'department', 'approvalDepartemenBy', 'approvalDivisiBy', 'approvalHrdBy', 'approvalFinanceBy', 'approvalDirekturBy'])->findOrFail($id);
+        $fpk = Fpk::with(['division', 'department', 'approvalLogs.user', 'creator'])->findOrFail($id);
         return view('pages.rekrutmen.fpk.show', compact('fpk'));
     }
 
     public function edit($id)
     {
         $fpk = Fpk::findOrFail($id);
+        if (!in_array($fpk->status_fpk, ['Draft', 'Revision Required'])) {
+            abort(403, 'FPK yang sudah diproses tidak dapat diedit.');
+        }
         $divisions = Division::all();
         $departments = Department::all();
         return view('pages.rekrutmen.fpk.edit', compact('fpk', 'divisions', 'departments'));
@@ -152,8 +170,13 @@ class FpkController extends Controller
     public function update(Request $request, $id)
     {
         $fpk = Fpk::findOrFail($id);
-        
+        if (!in_array($fpk->status_fpk, ['Draft', 'Revision Required'])) {
+            abort(403, 'FPK yang sudah diproses tidak dapat diedit.');
+        }
+
         $request->validate([
+            'division_id'           => 'required|exists:divisions,id',
+            'department_id'         => 'nullable|exists:departments,id',
             'nama_jabatan'          => 'required|string|max:255',
             'jumlah_kebutuhan'      => 'required|integer|min:1',
             'tanggal_mulai_bekerja' => 'required|date',
@@ -164,9 +187,11 @@ class FpkController extends Controller
         ]);
 
         $filterArray = fn($arr) => !empty($arr) ? array_values(array_filter($arr, fn($v) => trim($v) !== '')) : null;
+        $prevStatus = $fpk->status_fpk;
+        $status = $request->input('action') === 'submit' ? 'Pending HR Admin' : $prevStatus;
 
         $fpk->update([
-            'division_id'              => $request->division_id ?: null,
+            'division_id'              => $request->division_id,
             'department_id'            => $request->department_id ?: null,
             'nama_jabatan'             => $request->nama_jabatan,
             'grade'                    => $request->grade ?: null,
@@ -193,7 +218,12 @@ class FpkController extends Controller
             'soft_competency'          => $filterArray($request->soft_competency),
             'test_dibutuhkan'          => $request->test_dibutuhkan ?: null,
             'sarana_prasarana'         => $request->sarana_prasarana ?: null,
+            'status_fpk'               => $status,
         ]);
+
+        if ($status !== $prevStatus) {
+            $this->storeApprovalLog($fpk->id, 'resubmit', $prevStatus, $status);
+        }
 
         return redirect()->route('rekrutmen.fpk.index')->with('success', 'Data FPK berhasil diperbarui.');
     }
@@ -201,184 +231,158 @@ class FpkController extends Controller
     public function destroy($id)
     {
         $fpk = Fpk::findOrFail($id);
+        if ($fpk->status_fpk !== 'Draft') {
+            abort(403, 'Hanya FPK berstatus Draft yang dapat dihapus.');
+        }
         $fpk->delete();
-
-        return redirect()->route('rekrutmen.fpk.index')->with('success', 'Data FPK berhasil dihapus.');
+        return redirect()->route('rekrutmen.fpk.index')->with('success', 'FPK berhasil dihapus.');
     }
 
-    public function history()
-    {
-        $user = Auth::user();
-
-        // Cari tahu divisi & dept user (sebagai Manager)
-        $karyawan = \App\Models\Karyawan::where('user_id', $user->id)->first();
-        if (!$karyawan && !empty($user->nik)) {
-            $karyawan = \App\Models\Karyawan::where('nik', $user->nik)->first();
-        }
-
-        $deptId = null;
-        $divId = null;
-
-        if ($karyawan) {
-            $pekerjaan = $karyawan->pekerjaanTerkini()->first() ?? $karyawan->pekerjaan()->first();
-            if ($pekerjaan) {
-                $deptId = $pekerjaan->department_id;
-                $divId = $pekerjaan->division_id;
-            }
-        }
-
-        // Ambil riwayat FPK yang sesuai dengan Divisi / Dept Manajer terkait
-        $fpkQuery = Fpk::with('division', 'department')->orderBy('created_at', 'desc');
-        
-        // Filter FPK hanya untuk departemen mereka (kecuali kalau dia orang HR bisa lihat semua)
-        if ($user->hasRole(['admin', 'superadmin'])) {
-            // Bisa lihat semua
-        } else {
-            // Cek jika bukan HR dan merupakan Manager
-            $isHR = false;
-            if ($pekerjaan) {
-                $dn = strtolower($pekerjaan->department->name ?? '');
-                $vn = strtolower($pekerjaan->division->name ?? '');
-                if (str_contains($dn, 'hr') || str_contains($dn, 'human') || str_contains($vn, 'hr') || str_contains($vn, 'human resource')) {
-                    $isHR = true;
-                }
-            }
-            if (! $isHR) {
-                $fpkQuery->where(function ($q) use ($deptId, $divId) {
-                    $q->where('department_id', $deptId)
-                      ->orWhere('division_id', $divId);
-                });
-            }
-        }
-
-        $fpk = $fpkQuery->get();
-        return view('pages.rekrutmen.fpk.history', compact('fpk'));
-    }
-
-    public function forwardToHrManager($id)
+    public function submit($id)
     {
         $fpk = Fpk::findOrFail($id);
-        
-        // Validasi, pastikan posisinya sedang 'Pending HR Admin'
-        if ($fpk->status_fpk !== 'Pending HR Admin') {
-            return redirect()->back()->withErrors('FPK tidak berada dalam status yang dapat diforward oleh HR Admin.');
+        if (!in_array($fpk->status_fpk, ['Draft', 'Revision Required'])) {
+            return redirect()->back()->withErrors('FPK tidak dalam status untuk disubmit.');
+        }
+        $prev = $fpk->status_fpk;
+        $fpk->status_fpk = 'Pending HR Admin';
+        $fpk->save();
+        $this->storeApprovalLog($fpk->id, 'submit', $prev, 'Pending HR Admin');
+        return redirect()->back()->with('success', 'FPK berhasil diajukan.');
+    }
+
+    public function approveHrAdmin($id)
+    {
+        $this->checkRole('hr');
+        $fpk = Fpk::with('creator')->findOrFail($id);
+        if ($fpk->status_fpk !== 'Pending HR Admin') abort(403);
+
+        // Check condition: if requester is Finance Manager, bypass finance approval
+        $isFinanceManager = false;
+        if ($fpk->created_by) {
+            $crUser = $fpk->creator;
+            $karyawan = Karyawan::where('user_id', $crUser->id)->first() ?: Karyawan::where('nik', $crUser->nik)->first();
+            if ($karyawan) {
+                $pekerjaan = $karyawan->pekerjaanTerkini()->first() ?? $karyawan->pekerjaan()->first();
+                if ($pekerjaan) {
+                    $level = strtolower($pekerjaan->level->name ?? '');
+                    $dept  = strtolower($pekerjaan->department->name ?? '');
+                    if (str_contains($level, 'manager') && str_contains($dept, 'finance')) {
+                        $isFinanceManager = true;
+                    }
+                }
+            }
         }
 
-        // Proses forward (biasanya HR Admin yang tekan ini)
-        $fpk->status_fpk = 'Reviewing by HR Manager';
-        $fpk->save();
+        if ($isFinanceManager) {
+            $fpk->status_fpk = 'Reviewing by HR Manager';
+            $msg = 'FPK disetujui (Finance Manager requester - Bypass Finance Approval).';
+            $toStatus = 'Reviewing by HR Manager';
+        } else {
+            $fpk->status_fpk = 'Pending Finance Approval';
+            $msg = 'FPK disetujui HR Admin dan diteruskan ke Finance.';
+            $toStatus = 'Pending Finance Approval';
+        }
 
-        return redirect()->back()->with('success', 'FPK berhasil di-Forward dan siap untuk di-review oleh HR Manager.');
+        $fpk->approval_hrd_by = Auth::id();
+        $fpk->approval_hrd_at = now();
+        $fpk->save();
+        
+        $this->storeApprovalLog($fpk->id, 'approve', 'Pending HR Admin', $toStatus);
+        
+        return redirect()->back()->with('success', $msg);
+    }
+
+    public function approveFinance($id)
+    {
+        $this->checkRole('finance');
+        $fpk = Fpk::findOrFail($id);
+        if ($fpk->status_fpk !== 'Pending Finance Approval') abort(403);
+
+        $fpk->status_fpk = 'Reviewing by HR Manager';
+        $fpk->approval_finance_by = Auth::id();
+        $fpk->approval_finance_at = now();
+        $fpk->save();
+        $this->storeApprovalLog($fpk->id, 'approve', 'Pending Finance Approval', 'Reviewing by HR Manager');
+        return redirect()->back()->with('success', 'FPK disetujui Finance dan diteruskan ke HR Manager.');
+    }
+
+    public function approveHrManager($id)
+    {
+        $this->checkRole('hr_manager');
+        $fpk = Fpk::findOrFail($id);
+        if ($fpk->status_fpk !== 'Reviewing by HR Manager') abort(403);
+
+        $fpk->status_fpk = 'Approved';
+        $fpk->approval_direktur_by = Auth::id(); // Misal HR Manager level tertinggi direksi
+        $fpk->approval_direktur_at = now();
+        $fpk->save();
+        $this->storeApprovalLog($fpk->id, 'approve', 'Reviewing by HR Manager', 'Approved');
+        return redirect()->back()->with('success', 'FPK resmi disetujui.');
+    }
+
+    public function requestRevision(Request $request, $id)
+    {
+        $this->checkRole('hr');
+        $fpk = Fpk::findOrFail($id);
+        if ($fpk->status_fpk !== 'Pending HR Admin') abort(403);
+
+        $request->validate(['revision_comment' => 'required|string|max:1000']);
+        
+        $fpk->status_fpk = 'Revision Required';
+        $fpk->revision_comment = $request->revision_comment;
+        $fpk->save();
+        $this->storeApprovalLog($fpk->id, 'request_revision', 'Pending HR Admin', 'Revision Required', $request->revision_comment);
+        return redirect()->back()->with('success', 'Permintaan revisi dikirim ke Requester.');
     }
 
     public function reject(Request $request, $id)
     {
         $fpk = Fpk::findOrFail($id);
+        $user = Auth::user();
         
-        // Update data reject
-        $request->validate([
-            'alasan_reject' => 'required|string|max:1000',
-        ]);
-
+        $request->validate(['alasan_reject' => 'required|string|max:1000']);
+        
+        $prev = $fpk->status_fpk;
         $fpk->status_fpk = 'Rejected';
-        $fpk->alasan_reject = $request->input('alasan_reject');
+        $fpk->alasan_reject = $request->alasan_reject;
         $fpk->save();
 
-        return redirect()->back()->with('success', 'Form Pengajuan FPK berhasil di Reject.');
+        $this->storeApprovalLog($fpk->id, 'reject', $prev, 'Rejected', $request->alasan_reject);
+        return redirect()->back()->with('success', 'FPK ditolak.');
     }
 
-    public function approve(Request $request, $id)
+    private function storeApprovalLog($fpkId, $action, $from, $to, $notes = null)
     {
-        $fpk = Fpk::findOrFail($id);
+        FpkApprovalLog::create([
+            'fpk_id' => $fpkId,
+            'user_id' => Auth::id(),
+            'action' => $action,
+            'from_status' => $from,
+            'to_status' => $to,
+            'notes' => $notes,
+        ]);
+    }
+
+    private function checkRole($roleType)
+    {
         $user = Auth::user();
+        if ($user->hasRole(['admin', 'superadmin'])) return;
 
-        // Cari tahu role dan level pekerjaan dari $user via relasi Karyawan
-        $karyawan = \App\Models\Karyawan::where('user_id', $user->id)->first();
-        if (!$karyawan && !empty($user->nik)) {
-            $karyawan = \App\Models\Karyawan::where('nik', $user->nik)->first();
-        }
+        $karyawan = Karyawan::where('user_id', $user->id)->first() ?: Karyawan::where('nik', $user->nik)->first();
+        if (!$karyawan) abort(403);
 
-        $isDepartmentManager = false;
-        $isDivisionGM        = false;
-        $isHRManager         = false;
-        $isFinance           = false;
-        $isDirector          = false;
+        $pekerjaan = $karyawan->pekerjaanTerkini()->first() ?? $karyawan->pekerjaan()->first();
+        if (!$pekerjaan) abort(403);
 
-        if ($karyawan) {
-            $pekerjaan = $karyawan->pekerjaanTerkini()->first() ?? $karyawan->pekerjaan()->first();
-            if ($pekerjaan) {
-                $levelName = strtolower($pekerjaan->level->name ?? '');
-                $deptName  = strtolower($pekerjaan->department->name ?? '');
-                $divName   = strtolower($pekerjaan->division->name ?? '');
-                
-                // Cek manajer departemen
-                if (in_array($levelName, ['manager', 'senior_manager', 'supervisor'])) {
-                    $isDepartmentManager = true;
-                }
-                
-                // Cek GM / Leader divisi
-                if (in_array($levelName, ['gm', 'gm_divisi', 'general manager'])) {
-                    $isDivisionGM = true;
-                }
+        $dept = strtolower($pekerjaan->department->name ?? '');
+        $div  = strtolower($pekerjaan->division->name ?? '');
+        $level = strtolower($pekerjaan->level->name ?? '');
 
-                // Cek Spesial HR Manager
-                if ($isDepartmentManager && (str_contains($deptName, 'hr') || str_contains($deptName, 'human') || str_contains($divName, 'hr') || str_contains($divName, 'human resource'))) {
-                    $isHRManager = true;
-                }
+        if ($roleType === 'hr' && (str_contains($dept, 'hr') || str_contains($div, 'hr'))) return;
+        if ($roleType === 'finance' && (str_contains($dept, 'finance') || str_contains($div, 'finance'))) return;
+        if ($roleType === 'hr_manager' && (str_contains($dept, 'hr') || str_contains($div, 'hr')) && str_contains($level, 'manager')) return;
 
-                if (str_contains($deptName, 'finance') || str_contains($divName, 'finance')) {
-                    $isFinance = true;
-                }
-            }
-        }
-
-        // Jika user memiliki role direktur eksplisit dari Auth
-        if ($user->hasRole(['direktur', 'superadmin'])) {
-            $isDirector = true;
-        }
-
-        // Tentukan Kolom mana yang disetujui berdasarkan Role
-        $approvedByCol = null;
-        $approvedAtCol = null;
-
-        if ($isHRManager) {
-            $approvedByCol = 'approval_hrd_by';
-            $approvedAtCol = 'approval_hrd_at';
-            $fpk->status_fpk = 'Approved by HRD'; // Update status parsial (opsional)
-        } elseif ($isDivisionGM) {
-            $approvedByCol = 'approval_divisi_by';
-            $approvedAtCol = 'approval_divisi_at';
-        } elseif ($isDepartmentManager) {
-            $approvedByCol = 'approval_departemen_by';
-            $approvedAtCol = 'approval_departemen_at';
-        } elseif ($isFinance) {
-            $approvedByCol = 'approval_finance_by';
-            $approvedAtCol = 'approval_finance_at';
-        } elseif ($isDirector) {
-            $approvedByCol = 'approval_direktur_by';
-            $approvedAtCol = 'approval_direktur_at';
-            $fpk->status_fpk = 'Approved'; // Final status
-        }
-
-        if ($approvedByCol) {
-            $fpk->$approvedByCol = $user->id;
-            $fpk->$approvedAtCol = now();
-            
-            // Cek kondisi Final Approve 
-            if ($fpk->approval_hrd_by != null && $fpk->approval_direktur_by != null) {
-                $fpk->status_fpk = 'Approved';
-            }
-            // Jika manager HR yang approve, pastikan status utama juga berubah jika dibutuhkan
-            // Khusus perbaikan alur FPK:
-            if ($isHRManager && $fpk->status_fpk == 'Reviewing by HR Manager') {
-                 $fpk->status_fpk = 'Approved by HRD'; // Update label sesuai plan user jika diperlukan, namun krn default database hanya Approved/Rejected maka:
-                 // Update status_fpk string nya 'Approved by HRD' sudah saya hapus di Enum, jadi dibiarkan ke next stage atau Final
-            }
-            
-            $fpk->save();
-            return redirect()->back()->with('success', 'Berhasil memberikan persetujuan FPK.');
-        }
-
-        return redirect()->back()->withErrors('Anda tidak memiliki wewenang yang sesuai untuk menyetujui FPK ini.');
+        abort(403, 'Akses Ditolak. Anda tidak punya izin untuk aksi ini.');
     }
 }

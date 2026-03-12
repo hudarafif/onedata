@@ -11,13 +11,15 @@
         </div>
         <a href="{{ route('rekrutmen.fpk.create') }}"
            class="inline-flex items-center gap-2 rounded-md bg-primary py-2 px-6 font-medium text-white hover:bg-opacity-90">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
             Buat FPK Baru
         </a>
     </div>
 
     @if(session('success'))
-    <div class="mb-5 rounded bg-success/20 py-3 px-4 text-success border border-success">
+    <div class="mb-5 rounded py-3 px-4 border bg-green-50 border-green-200 text-green-700 font-medium">
         {{ session('success') }}
     </div>
     @endif
@@ -25,113 +27,117 @@
     {{-- Statistik --}}
     @php
         $total    = $fpk->count();
-        $pending  = $fpk->whereIn('status_fpk', ['Pending HR Admin', 'Reviewing by HR Manager'])->count();
+        $pending  = $fpk->whereNotIn('status_fpk', ['Approved', 'Rejected', 'Draft'])->count();
         $approved = $fpk->where('status_fpk', 'Approved')->count();
         $rejected = $fpk->where('status_fpk', 'Rejected')->count();
     @endphp
+
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div class="rounded-sm border border-stroke bg-white py-5 px-6 shadow-default dark:border-strokedark dark:bg-boxdark">
-            <p class="text-sm font-medium text-black dark:text-white opacity-60 mb-1">Total FPK</p>
-            <p class="text-3xl font-bold text-black dark:text-white">{{ $total }}</p>
+        <div class="rounded-xl border border-stroke bg-white py-5 px-6 shadow-sm dark:border-strokedark dark:bg-boxdark border-t-4 border-t-blue-500">
+            <p class="text-xs font-bold uppercase tracking-widest mb-1 text-blue-500">Total FPK</p>
+            <p class="text-3xl font-extrabold text-black dark:text-white">{{ $total }}</p>
         </div>
-        <div class="rounded-sm border border-stroke bg-white py-5 px-6 shadow-default dark:border-strokedark dark:bg-boxdark">
-            <p class="text-sm font-medium text-warning mb-1">Dalam Proses</p>
-            <p class="text-3xl font-bold text-warning">{{ $pending }}</p>
+        <div class="rounded-xl border border-stroke bg-white py-5 px-6 shadow-sm dark:border-strokedark dark:bg-boxdark border-t-4 border-t-yellow-500">
+            <p class="text-xs font-bold uppercase tracking-widest mb-1 text-yellow-500">Processing</p>
+            <p class="text-3xl font-extrabold text-yellow-500">{{ $pending }}</p>
         </div>
-        <div class="rounded-sm border border-stroke bg-white py-5 px-6 shadow-default dark:border-strokedark dark:bg-boxdark">
-            <p class="text-sm font-medium text-success mb-1">Disetujui</p>
-            <p class="text-3xl font-bold text-success">{{ $approved }}</p>
+        <div class="rounded-xl border border-stroke bg-white py-5 px-6 shadow-sm dark:border-strokedark dark:bg-boxdark border-t-4 border-t-green-500">
+            <p class="text-xs font-bold uppercase tracking-widest mb-1 text-green-500">Approved</p>
+            <p class="text-3xl font-extrabold text-green-500">{{ $approved }}</p>
         </div>
-        <div class="rounded-sm border border-stroke bg-white py-5 px-6 shadow-default dark:border-strokedark dark:bg-boxdark">
-            <p class="text-sm font-medium text-danger mb-1">Ditolak</p>
-            <p class="text-3xl font-bold text-danger">{{ $rejected }}</p>
+        <div class="rounded-xl border border-stroke bg-white py-5 px-6 shadow-sm dark:border-strokedark dark:bg-boxdark border-t-4 border-t-red-500">
+            <p class="text-xs font-bold uppercase tracking-widest mb-1 text-red-500">Rejected</p>
+            <p class="text-3xl font-extrabold text-red-500">{{ $rejected }}</p>
         </div>
     </div>
 
     {{-- Tabel --}}
-    <div class="rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark">
-        <div class="px-6 py-4 border-b border-stroke dark:border-strokedark">
-            <h3 class="font-medium text-black dark:text-white">Riwayat Pengajuan</h3>
+    <div class="rounded-xl border border-stroke bg-white shadow-sm dark:border-strokedark dark:bg-boxdark overflow-hidden">
+        <div class="px-6 py-4 border-b border-stroke dark:border-strokedark bg-gray-50/50 dark:bg-meta-4/20">
+            <h3 class="font-bold text-black dark:text-white">Riwayat Pengajuan</h3>
         </div>
         <div class="max-w-full overflow-x-auto">
             <table class="w-full table-auto">
                 <thead>
-                    <tr class="bg-gray-2 text-left dark:bg-meta-4">
-                        <th class="py-4 px-4 font-medium text-black dark:text-white xl:pl-11">Nomor FPK</th>
-                        <th class="py-4 px-4 font-medium text-black dark:text-white">Posisi</th>
-                        <th class="py-4 px-4 font-medium text-black dark:text-white">Divisi</th>
-                        <th class="py-4 px-4 font-medium text-black dark:text-white">Tgl Mulai</th>
-                        <th class="py-4 px-4 font-medium text-black dark:text-white text-center">Kebutuhan</th>
-                        <th class="py-4 px-4 font-medium text-black dark:text-white text-center">Alur Status</th>
-                        <th class="py-4 px-4 font-medium text-black dark:text-white text-center">Aksi</th>
+                    <tr class="bg-gray-100 text-left dark:bg-meta-4 border-b border-stroke dark:border-strokedark">
+                        <th class="py-4 px-4 font-bold text-xs uppercase text-gray-500 dark:text-gray-400 xl:pl-11">Nomor FPK</th>
+                        <th class="py-4 px-4 font-bold text-xs uppercase text-gray-500 dark:text-gray-400">Posisi & Level</th>
+                        <th class="py-4 px-4 font-bold text-xs uppercase text-gray-500 dark:text-gray-400 text-center">Status Alur</th>
+                        <th class="py-4 px-4 font-bold text-xs uppercase text-gray-500 dark:text-gray-400 text-center">Aksi</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="divide-y divide-gray-100 dark:divide-strokedark">
                     @forelse($fpk as $row)
-                    <tr>
-                        <td class="border-b border-[#eee] py-5 px-4 pl-9 dark:border-strokedark xl:pl-11">
-                            <p class="font-medium text-primary text-sm">{{ $row->nomor_fpk }}</p>
-                            <p class="text-xs text-black dark:text-white opacity-50">{{ $row->created_at->format('d M Y') }}</p>
+                    @php
+                        $status = $row->status_fpk;
+                        $isRejected = $status === 'Rejected';
+                        $isApproved = $status === 'Approved';
+                        
+                        // Tracker Logic
+                        $atLeastHrDone    = in_array($status, ['Pending Finance Approval', 'Reviewing by HR Manager', 'Approved', 'Rejected']);
+                        $atLeastFinDone   = in_array($status, ['Reviewing by HR Manager', 'Approved', 'Rejected']);
+                        $atLeastFinalDone = in_array($status, ['Approved', 'Rejected']);
+
+                        $colorActive = '#10B981'; // Green
+                        $colorPending = '#CBD5E1'; // Gray
+                        $colorReject = '#EF4444'; // Red
+                    @endphp
+                    <tr class="hover:bg-gray-50 dark:hover:bg-boxdark-2 transition-colors">
+                        <td class="py-5 px-4 pl-9 xl:pl-11">
+                            <p class="font-bold text-primary text-sm">{{ $row->nomor_fpk }}</p>
+                            <p class="text-[10px] text-gray-400 mt-1 uppercase font-semibold">{{ $row->created_at->format('d M Y') }}</p>
                         </td>
-                        <td class="border-b border-[#eee] py-5 px-4 dark:border-strokedark">
-                            <p class="font-medium text-black dark:text-white">{{ $row->nama_jabatan }}</p>
-                            <p class="text-xs text-black dark:text-white opacity-50">{{ $row->level }}</p>
+                        <td class="py-5 px-4">
+                            <p class="font-bold text-black dark:text-white text-sm">{{ $row->nama_jabatan }}</p>
+                            <span class="inline-block mt-1 px-2 py-0.5 rounded bg-blue-50 text-[10px] font-bold text-blue-600 dark:bg-blue-900/20">{{ $row->level }}</span>
                         </td>
-                        <td class="border-b border-[#eee] py-5 px-4 dark:border-strokedark">
-                            <p class="text-black dark:text-white">{{ $row->division->name ?? '-' }}</p>
-                        </td>
-                        <td class="border-b border-[#eee] py-5 px-4 dark:border-strokedark">
-                            <p class="text-black dark:text-white">{{ \Carbon\Carbon::parse($row->tanggal_mulai_bekerja)->format('d M Y') }}</p>
-                        </td>
-                        <td class="border-b border-[#eee] py-5 px-4 dark:border-strokedark text-center">
-                            <p class="font-bold text-black dark:text-white">{{ $row->jumlah_kebutuhan }} <span class="font-normal text-sm">org</span></p>
-                        </td>
-                        <td class="border-b border-[#eee] py-5 px-4 dark:border-strokedark">
-                            {{-- Progress Tracker --}}
-                            @php
-                                $steps = [
-                                    'Diajukan'   => true,
-                                    'HR Admin'   => in_array($row->status_fpk, ['Reviewing by HR Manager', 'Approved', 'Rejected']),
-                                    'HR Manager' => in_array($row->status_fpk, ['Approved', 'Rejected']),
-                                ];
-                                $isRejected = $row->status_fpk === 'Rejected';
-                            @endphp
-                            <div class="flex items-end gap-1 justify-center">
-                                @foreach($steps as $stepName => $done)
-                                <div class="flex items-center gap-1">
-                                    <div class="flex flex-col items-center">
-                                        <div class="h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold text-white
-                                            {{ $done ? ($isRejected && $stepName === 'HR Manager' ? 'bg-danger' : 'bg-success') : 'bg-stroke dark:bg-strokedark' }}">
-                                            @if($done && !($isRejected && $stepName === 'HR Manager'))
-                                                ✓
-                                            @elseif($isRejected && $stepName === 'HR Manager')
-                                                ✗
-                                            @else
-                                                <span class="text-black dark:text-white opacity-40">·</span>
-                                            @endif
-                                        </div>
-                                        <span class="text-xs text-black dark:text-white opacity-60 mt-1 whitespace-nowrap">{{ $stepName }}</span>
-                                    </div>
-                                    @if(!$loop->last)
-                                        <div class="h-0.5 w-5 mb-4 {{ $done ? 'bg-success' : 'bg-stroke dark:bg-strokedark' }}"></div>
-                                    @endif
+                        <td class="py-5 px-4">
+                            <div class="flex items-center justify-center gap-1">
+                                {{-- Step 1: Submit --}}
+                                <div class="flex flex-col items-center group">
+                                    <div class="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-white text-[10px] font-bold shadow-sm">✓</div>
+                                    <span class="text-[8px] mt-1 text-gray-400 uppercase font-black">Submit</span>
                                 </div>
-                                @endforeach
+                                <div class="w-8 h-[2px] mb-4 {{ $atLeastHrDone ? 'bg-green-500' : 'bg-gray-200' }}"></div>
+
+                                {{-- Step 2: HR Admin --}}
+                                <div class="flex flex-col items-center">
+                                    <div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold shadow-sm {{ $atLeastHrDone ? 'bg-green-500' : 'bg-gray-200 text-gray-400' }}">
+                                        {{ $atLeastHrDone ? '✓' : '2' }}
+                                    </div>
+                                    <span class="text-[8px] mt-1 {{ $atLeastHrDone ? 'text-green-600' : 'text-gray-400' }} uppercase font-black">HR Admin</span>
+                                </div>
+                                <div class="w-8 h-[2px] mb-4 {{ $atLeastFinDone ? 'bg-green-500' : 'bg-gray-200' }}"></div>
+
+                                {{-- Step 3: Finance --}}
+                                <div class="flex flex-col items-center">
+                                    <div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold shadow-sm {{ $atLeastFinDone ? 'bg-green-500' : 'bg-gray-200 text-gray-400' }}">
+                                        {{ $atLeastFinDone ? '✓' : '3' }}
+                                    </div>
+                                    <span class="text-[8px] mt-1 {{ $atLeastFinDone ? 'text-green-600' : 'text-gray-400' }} uppercase font-black">Finance</span>
+                                </div>
+                                <div class="w-8 h-[2px] mb-4 {{ $atLeastFinalDone ? 'bg-green-500' : 'bg-gray-200' }}"></div>
+
+                                {{-- Step 4: Final --}}
+                                <div class="flex flex-col items-center">
+                                    @php $finalColor = $isRejected ? 'bg-red-500' : ($isApproved ? 'bg-green-500' : 'bg-gray-200 text-gray-400'); @endphp
+                                    <div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold shadow-sm {{ $finalColor }}">
+                                        {{ $isApproved ? '✓' : ($isRejected ? '✗' : '4') }}
+                                    </div>
+                                    <span class="text-[8px] mt-1 uppercase font-black {{ $isRejected ? 'text-red-500' : ($isApproved ? 'text-green-600' : 'text-gray-400') }}">Final</span>
+                                </div>
                             </div>
                         </td>
-                        <td class="border-b border-[#eee] py-5 px-4 dark:border-strokedark text-center">
+                        <td class="py-5 px-4 text-center">
                             <a href="{{ route('rekrutmen.fpk.show', $row->id) }}"
-                               class="inline-flex items-center rounded bg-primary py-1.5 px-4 text-sm font-medium text-white hover:bg-opacity-90">
+                               class="inline-flex items-center rounded-lg bg-blue-50 py-1.5 px-4 text-xs font-bold text-blue-600 hover:bg-blue-600 hover:text-white transition shadow-sm">
                                 Detail
                             </a>
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" class="border-b border-[#eee] py-16 px-4 text-center dark:border-strokedark">
-                            <p class="font-medium text-black dark:text-white mb-2">Belum ada riwayat pengajuan FPK</p>
-                            <a href="{{ route('rekrutmen.fpk.create') }}" class="text-sm text-primary hover:underline">+ Buat Pengajuan Pertama</a>
-                        </td>
+                        <td colspan="4" class="py-20 text-center opacity-50 italic">Belum ada riwayat pengajuan.</td>
                     </tr>
                     @endforelse
                 </tbody>

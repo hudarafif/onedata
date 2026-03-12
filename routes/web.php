@@ -90,8 +90,11 @@ Route::middleware(['auth'])->prefix('rekrutmen')->name('rekrutmen.')->group(func
 
             // FPK (Form Permintaan Karyawan)
             Route::get('fpk/history', [FpkController::class, 'history'])->name('fpk.history');
-            Route::post('fpk/{fpk}/approve', [FpkController::class, 'approve'])->name('fpk.approve');
-            Route::post('fpk/{fpk}/forward', [FpkController::class, 'forwardToHrManager'])->name('fpk.forward');
+            Route::post('fpk/{fpk}/submit', [FpkController::class, 'submit'])->name('fpk.submit');
+            Route::post('fpk/{fpk}/approve-hr-admin', [FpkController::class, 'approveHrAdmin'])->name('fpk.approveHrAdmin');
+            Route::post('fpk/{fpk}/approve-finance', [FpkController::class, 'approveFinance'])->name('fpk.approveFinance');
+            Route::post('fpk/{fpk}/approve-hr-manager', [FpkController::class, 'approveHrManager'])->name('fpk.approveHrManager');
+            Route::post('fpk/{fpk}/request-revision', [FpkController::class, 'requestRevision'])->name('fpk.requestRevision');
             Route::post('fpk/{fpk}/reject', [FpkController::class, 'reject'])->name('fpk.reject');
             Route::resource('fpk', FpkController::class);
 

@@ -41,7 +41,10 @@ class Fpk extends Model
         'soft_competency',
         'test_dibutuhkan',
         'sarana_prasarana',
+        'created_by',
         'status_fpk',
+        'revision_comment',
+        'alasan_reject',
         'approval_departemen_by',
         'approval_departemen_at',
         'approval_divisi_by',
@@ -103,5 +106,15 @@ class Fpk extends Model
     public function approvalDirekturBy()
     {
         return $this->belongsTo(User::class, 'approval_direktur_by');
+    }
+
+    public function creator()
+    {
+        return $this->belongsTo(\App\Models\User::class, 'created_by');
+    }
+
+    public function approvalLogs()
+    {
+        return $this->hasMany(FpkApprovalLog::class, 'fpk_id');
     }
 }

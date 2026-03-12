@@ -1,0 +1,200 @@
+{
+  "workflow_name": "FPK Approval Workflow",
+  "description": "Workflow pengajuan Form Permintaan Karyawan dalam sistem HR",
+  "version": "1.0",
+
+  "actors": [
+    "Requester",
+    "HR Admin",
+    "Finance Manager",
+    "HR Manager",
+    "System"
+  ],
+
+  "statuses": [
+    "Draft",
+    "Pending HR Admin",
+    "Pending Finance Approval",
+    "Reviewing by HR Manager",
+    "Revision Required",
+    "Approved",
+    "Rejected"
+  ],
+
+  "initial_status": "Draft",
+
+  "transitions": [
+    {
+      "from": "Draft",
+      "action": "submit",
+      "performed_by": "Requester",
+      "to": "Pending HR Admin",
+      "system_actions": [
+        "notify_hr_admin"
+      ]
+    },
+
+    {
+      "from": "Pending HR Admin",
+      "action": "approve",
+      "performed_by": "HR Admin",
+      "to": "Pending Finance Approval",
+      "system_actions": [
+        "notify_finance_manager"
+      ]
+    },
+
+    {
+      "from": "Pending HR Admin",
+      "action": "reject",
+      "performed_by": "HR Admin",
+      "to": "Rejected",
+      "system_actions": [
+        "store_rejection_reason",
+        "notify_requester"
+      ]
+    },
+
+    {
+      "from": "Pending HR Admin",
+      "action": "request_revision",
+      "performed_by": "HR Admin",
+      "to": "Revision Required",
+      "system_actions": [
+        "store_revision_comment",
+        "notify_requester"
+      ]
+    },
+
+    {
+      "from": "Pending Finance Approval",
+      "action": "approve",
+      "performed_by": "Finance Manager",
+      "to": "Reviewing by HR Manager",
+      "system_actions": [
+        "notify_hr_manager"
+      ]
+    },
+
+    {
+      "from": "Pending Finance Approval",
+      "action": "reject",
+      "performed_by": "Finance Manager",
+      "to": "Rejected",
+      "system_actions": [
+        "store_rejection_reason",
+        "notify_requester"
+      ]
+    },
+
+    {
+      "from": "Reviewing by HR Manager",
+      "action": "approve",
+      "performed_by": "HR Manager",
+      "to": "Approved",
+      "system_actions": [
+        "create_recruitment_request",
+        "notify_recruitment_team",
+        "notify_requester"
+      ]
+    },
+
+    {
+      "from": "Reviewing by HR Manager",
+      "action": "reject",
+      "performed_by": "HR Manager",
+      "to": "Rejected",
+      "system_actions": [
+        "store_rejection_reason",
+        "notify_requester"
+      ]
+    },
+
+    {
+      "from": "Revision Required",
+      "action": "edit_and_resubmit",
+      "performed_by": "Requester",
+      "to": "Pending HR Admin",
+      "system_actions": [
+        "notify_hr_admin"
+      ]
+    },
+    
+    {
+      "from": "Pending HR Admin",
+      "action": "approve",
+      "to": "Pending Finance Approval",
+      "condition": "requester_role != Finance Manager"
+    },
+    {
+      "from": "Pending HR Admin",
+      "action": "approve",
+      "to": "Reviewing by HR Manager",
+      "condition": "requester_role == Finance Manager"
+    }
+  ],
+
+  "permissions": {
+    "Requester": [
+      "create_fpk",
+      "edit_draft",
+      "submit",
+      "edit_revision",
+      "resubmit"
+    ],
+    "HR Admin": [
+      "approve",
+      "reject",
+      "request_revision"
+    ],
+    "Finance Manager": [
+      "approve",
+      "reject"
+    ],
+    "HR Manager": [
+      "approve",
+      "reject"
+    ]
+  },
+
+  "validation_rules": [
+    "nama_jabatan must not be empty",
+    "division_id must exist",
+    "jumlah_kebutuhan must be greater than 0",
+    "tanggal_mulai_bekerja must exist"
+  ],
+
+  "guard_rules": [
+    "FPK with status Approved cannot be edited",
+    "FPK with status Rejected cannot be resubmitted",
+    "FPK can only be deleted when status is Draft"
+  ],
+
+  "data_fields": [
+    "id",
+    "nomor_fpk",
+    "division_id",
+    "nama_jabatan",
+    "level",
+    "jumlah_kebutuhan",
+    "tanggal_mulai_bekerja",
+    "alasan_kebutuhan",
+    "status_fpk",
+    "created_by",
+    "approved_by_hr_admin",
+    "approved_by_finance_manager",
+    "approved_by_hr_manager",
+    "rejected_by",
+    "rejection_reason",
+    "created_at",
+    "updated_at"
+  ],
+
+  "notifications": {
+    "notify_hr_admin": "New FPK submitted and waiting for verification",
+    "notify_finance_manager": "FPK requires finance approval",
+    "notify_hr_manager": "FPK ready for HR Manager review",
+    "notify_requester": "Your FPK status has been updated",
+    "notify_recruitment_team": "FPK approved and recruitment process can begin"
+  }
+}

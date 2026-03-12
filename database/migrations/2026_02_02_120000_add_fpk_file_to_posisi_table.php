@@ -12,7 +12,7 @@ return new class extends Migration {
     {
         Schema::table('posisi', function (Blueprint $table) {
             if (!Schema::hasColumn('posisi', 'fpk_file')) {
-                $table->string('fpk_file', 255)->nullable()->after('activated_at');
+                $table->string('fpk_file', 255)->nullable();
             }
         });
     }
