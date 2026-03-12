@@ -133,10 +133,17 @@
                                             </span>
 
                                             <span x-show="$store.sidebar.isExpanded || $store.sidebar.isHovered || $store.sidebar.isMobileOpen"
-                                                class="menu-item-text flex items-center gap-2">
-                                                {{ $item['name'] }}
-                                                @if (!empty($item['new']))
-                                                    <span class="absolute right-10" :class="isActive('{{ $item['path'] ?? '' }}') ? 'menu-dropdown-badge menu-dropdown-badge-active' : 'menu-dropdown-badge menu-dropdown-badge-inactive'">new</span>
+                                                class="menu-item-text flex items-center justify-between w-full pr-4">
+                                                <span class="flex items-center gap-2">
+                                                    {{ $item['name'] }}
+                                                    @if (!empty($item['new']))
+                                                        <span class="menu-dropdown-badge menu-dropdown-badge-inactive">new</span>
+                                                    @endif
+                                                </span>
+                                                @if (isset($item['badge']))
+                                                    <span class="inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-error-500 rounded-full">
+                                                        {{ $item['badge'] }}
+                                                    </span>
                                                 @endif
                                             </span>
 
@@ -152,9 +159,14 @@
                                             <ul class="mt-2 space-y-1 ml-9">
                                                 @foreach ($item['subItems'] as $subItem)
                                                     <li>
-                                                        <a href="{{ $subItem['path'] }}" class="menu-dropdown-item"
+                                                        <a href="{{ $subItem['path'] }}" class="menu-dropdown-item flex items-center justify-between pr-4"
                                                             :class="isActive('{{ $subItem['path'] }}') ? 'menu-dropdown-item-active' : 'menu-dropdown-item-inactive'">
-                                                            {{ $subItem['name'] }}
+                                                            <span>{{ $subItem['name'] }}</span>
+                                                            @if (isset($subItem['badge']))
+                                                                <span class="inline-flex items-center justify-center px-2 py-0.5 text-[10px] font-bold leading-none text-white bg-error-500 rounded-full">
+                                                                    {{ $subItem['badge'] }}
+                                                                </span>
+                                                            @endif
                                                         </a>
                                                     </li>
                                                 @endforeach

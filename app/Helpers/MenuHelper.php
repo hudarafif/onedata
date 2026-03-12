@@ -126,10 +126,14 @@ class MenuHelper
                 ];
             }
 
-            $rekrutmenSubItems = [];
+            $pendingCount = self::getPendingFpkCount($user, $isHR, $isManagerOrLeader, $derivedRoles);
 
             // Menu FPK tersedia untuk semua (HR, manager, admin)
-            $rekrutmenSubItems[] = ['name' => 'Pengajuan FPK', 'path' => '/rekrutmen/fpk'];
+            $rekrutmenSubItems[] = [
+                'name' => 'Pengajuan FPK', 
+                'path' => '/rekrutmen/fpk',
+                'badge' => $pendingCount > 0 ? $pendingCount : null,
+            ];
             $rekrutmenSubItems[] = ['name' => 'History FPK', 'path' => '/rekrutmen/fpk/history'];
 
             // Menu rekrutmen lengkap hanya untuk HR, admin, superadmin
@@ -298,6 +302,44 @@ class MenuHelper
     {
         return request()->is(ltrim($path, '/'));
         return request()->is(ltrim($path, 'route'));
+    }
+
+    public static function getPendingFpkCount($user, $isHR, $isManagerOrLeader, $derivedRoles)
+    {
+        if (!$user) return 0;
+        
+        $query = \App\Models\Fpk::query();
+        
+        // HR Admin / Admin / Superadmin: check 'Pending HR Admin'
+        if ($isHR || $user->hasRole(['admin', 'superadmin'])) {
+            return $query->where('status_fpk', 'Pending HR Admin')->count();
+        }
+        
+        // Finance Manager: check 'Pending Finance Approval'
+        $isFinance = false;
+        foreach ($derivedRoles as $dRole) {
+            if (str_contains($dRole, 'finance')) {
+                $isFinance = true;
+                break;
+            }
+        }
+        if ($isFinance) {
+            return $query->where('status_fpk', 'Pending Finance Approval')->count();
+        }
+        
+        // HR Manager: check 'Reviewing by HR Manager'
+        $isHRManager = false;
+        foreach ($derivedRoles as $dRole) {
+            if (str_contains($dRole, 'manager') && $isHR) {
+                $isHRManager = true;
+                break;
+            }
+        }
+        if ($isHRManager) {
+            return $query->where('status_fpk', 'Reviewing by HR Manager')->count();
+        }
+
+        return 0;
     }
 
     public static function getIconSvg($iconName)

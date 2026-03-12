@@ -89,9 +89,6 @@
                 </svg>
             </button>
 
-            {{-- Notification — selalu tampil di semua ukuran --}}
-            <x-header.notification-dropdown />
-
             {{-- User Dropdown — selalu tampil di semua ukuran --}}
             <x-header.user-dropdown />
 
