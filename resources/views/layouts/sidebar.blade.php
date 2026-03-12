@@ -66,17 +66,17 @@
 
         <a href="/" class="flex items-center gap-2">
             <img x-show="$store.sidebar.isExpanded || $store.sidebar.isHovered || $store.sidebar.isMobileOpen"
-                class="dark:hidden" src="/images/logo/icon.png" alt="One Data HR Light" width="32" height="32" />
+                class="dark:hidden" src="/images/logo/logo.png" alt="One Data HR Light" width="32" height="32" />
             <img x-show="$store.sidebar.isExpanded || $store.sidebar.isHovered || $store.sidebar.isMobileOpen"
-                class="hidden dark:block" src="/images/logo/icon.png" alt="One Data HR Dark" width="32" height="32" />
+                class="hidden dark:block" src="/images/logo/logo.png" alt="One Data HR Dark" width="32" height="32" />
             <span x-show="$store.sidebar.isExpanded || $store.sidebar.isHovered || $store.sidebar.isMobileOpen"
                 class="text-xl font-bold whitespace-nowrap text-slate-800 dark:text-slate-100 transition-colors">
                 ONE DATA HR
             </span>
             <img x-show="!$store.sidebar.isExpanded && !$store.sidebar.isHovered && !$store.sidebar.isMobileOpen"
-                src="/images/logo/icon.png" class="dark:hidden" alt="Icon Mini Light" width="32" height="32" />
+                src="/images/logo/logo.png" class="dark:hidden" alt="Icon Mini Light" width="32" height="32" />
             <img x-show="!$store.sidebar.isExpanded && !$store.sidebar.isHovered && !$store.sidebar.isMobileOpen"
-                class="hidden dark:block" src="/images/logo/icon.png" alt="Icon Mini Dark" width="32" height="32" />
+                class="hidden dark:block" src="/images/logo/logo.png" alt="Icon Mini Dark" width="32" height="32" />
         </a>
     </div>
 
