@@ -7,7 +7,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <!-- <title>{{ $title ?? 'Dashboard' }} | ONE DATA HR</title> -->
-    <title>One Data HR</title>
+    <title>One Data</title>
     <!-- Scripts -->
     @php $viteManifest = public_path('build/manifest.json'); @endphp
     @if (file_exists($viteManifest))
