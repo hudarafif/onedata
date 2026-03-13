@@ -341,8 +341,8 @@
                             {{ \Carbon\Carbon::parse($step['at'])->format('d/m/Y H:i') }}
                         </p>
                     @elseif($step['is_rej'])
-                        <p class="text-theme-xs font-medium text-error-600 dark:text-error-400 line-clamp-1">{{ $step['rej_by'] }}</p>
-                        <p class="text-[10px] text-error-500/80 mt-0.5">
+                        <p class="text-theme-xs font-medium text-error-600 dark:text-gray-300 line-clamp-1">{{ $step['rej_by'] }}</p>
+                        <p class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
                             Rejected ({{ \Carbon\Carbon::parse($step['rej_at'])->format('d/m/Y H:i') }})
                         </p>
                     @else
