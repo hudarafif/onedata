@@ -264,10 +264,45 @@
         </div>
         <div class="p-6">
             @php
+                $lastRejectLog = ($fpk->status_fpk === 'Rejected') 
+                    ? $fpk->approvalLogs()->where('action', 'reject')->latest()->first() 
+                    : null;
+                
+                $rejectedStep = null;
+                if ($lastRejectLog) {
+                    $rejectedStep = match($lastRejectLog->from_status) {
+                        'Pending HR Admin'          => 0,
+                        'Pending Finance Approval'  => 1,
+                        'Reviewing by HR Manager'   => 2,
+                        default                     => null
+                    };
+                }
+
                 $steps = [
-                    ['label' => 'HR Verifier',  'at' => $fpk->approval_hrd_at,      'by' => $fpk->approvalHrdBy?->name],
-                    ['label' => 'Finance',       'at' => $fpk->approval_finance_at,  'by' => $fpk->approvalFinanceBy?->name],
-                    ['label' => 'HR Manager',    'at' => $fpk->approval_direktur_at, 'by' => $fpk->approvalDirekturBy?->name],
+                    [
+                        'label' => 'HR Verifier',  
+                        'at' => $fpk->approval_hrd_at,      
+                        'by' => $fpk->approvalHrdBy?->name,
+                        'is_rej' => ($rejectedStep === 0),
+                        'rej_at' => ($rejectedStep === 0) ? $lastRejectLog->created_at : null,
+                        'rej_by' => ($rejectedStep === 0) ? $lastRejectLog->user?->name : null,
+                    ],
+                    [
+                        'label' => 'Finance',       
+                        'at' => $fpk->approval_finance_at,  
+                        'by' => $fpk->approvalFinanceBy?->name,
+                        'is_rej' => ($rejectedStep === 1),
+                        'rej_at' => ($rejectedStep === 1) ? $lastRejectLog->created_at : null,
+                        'rej_by' => ($rejectedStep === 1) ? $lastRejectLog->user?->name : null,
+                    ],
+                    [
+                        'label' => 'HR Manager',    
+                        'at' => $fpk->approval_direktur_at, 
+                        'by' => $fpk->approvalDirekturBy?->name,
+                        'is_rej' => ($rejectedStep === 2),
+                        'rej_at' => ($rejectedStep === 2) ? $lastRejectLog->created_at : null,
+                        'rej_by' => ($rejectedStep === 2) ? $lastRejectLog->user?->name : null,
+                    ],
                 ];
             @endphp
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -286,6 +321,13 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
                             </svg>
                         </div>
+                    @elseif($step['is_rej'])
+                        <div class="mb-3 flex h-11 w-11 items-center justify-center rounded-full"
+                             style="background:#f04438;">
+                            <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </div>
                     @else
                         <div class="mb-3 flex h-11 w-11 items-center justify-center rounded-full border-2 border-dashed border-gray-300 dark:border-gray-600">
                             <span class="text-xl text-gray-300 dark:text-gray-600">○</span>
@@ -297,6 +339,11 @@
                         <p class="text-theme-xs font-medium text-gray-700 dark:text-gray-300 line-clamp-1">{{ $step['by'] }}</p>
                         <p class="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">
                             {{ \Carbon\Carbon::parse($step['at'])->format('d/m/Y H:i') }}
+                        </p>
+                    @elseif($step['is_rej'])
+                        <p class="text-theme-xs font-medium text-error-600 dark:text-error-400 line-clamp-1">{{ $step['rej_by'] }}</p>
+                        <p class="text-[10px] text-error-500/80 mt-0.5">
+                            Rejected ({{ \Carbon\Carbon::parse($step['rej_at'])->format('d/m/Y H:i') }})
                         </p>
                     @else
                         <p class="text-theme-xs text-gray-400 dark:text-gray-500 italic">Menunggu</p>
