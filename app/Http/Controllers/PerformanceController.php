@@ -30,7 +30,7 @@ class PerformanceController extends Controller
     {
         $user = Auth::user();
         $tahun = request()->get('tahun', date('Y'));
-        $mode = request()->get('mode', 'manager'); // 'manager' atau 'superadmin'
+        // $mode = request()->get('mode', 'manager'); // DIHAPUS: Mode sekarang otomatis berdasarkan role
 
         if($user->roles->contains('Supervisor')){
             return redirect()->back()->with('error', 'Akses Ditolak: Anda tidak diizinkan melihat Rekapitulasi Kinerja.');
@@ -45,15 +45,14 @@ class PerformanceController extends Controller
             return redirect()->back()->with('error', 'Data profil karyawan Anda belum terhubung. Silakan hubungi HRD.');
         }
 
-        // Jika user memiliki role ganda, pastikan mereka punya role superadmin untuk mode superadmin
-        if ($mode === 'superadmin' && !$user->hasRole(['superadmin', 'admin'])) {
-            $mode = 'manager'; // Fallback ke manager mode
+        if (!$me && !$user->hasRole(['superadmin', 'admin'])) {
+            return redirect()->back()->with('error', 'Data profil karyawan Anda belum terhubung. Silakan hubungi HRD.');
         }
 
-        // Jika user hanya manager/gm (tanpa superadmin), force ke manager mode
-        if (!$user->hasRole(['superadmin', 'admin']) && $user->hasRole(['manager', 'gm'])) {
-            $mode = 'manager';
-        }
+        // Logic mode sekarang otomatis: 
+        // 1. Superadmin/Admin = 'superadmin' (melihat semua)
+        // 2. Selain itu = 'manager' (melihat divisi-nya sendiri)
+        $mode = $user->hasRole(['superadmin', 'admin']) ? 'superadmin' : 'manager';
 
         // ======================================================
         // 1. QUERY UTAMA DENGAN EAGER LOAD
@@ -91,21 +90,23 @@ class PerformanceController extends Controller
         }
 
         // B. Filter Role (Manager/senior_manager hanya lihat bawahan)
-        if ($user->hasRole(['manager', 'senior_manager', 'GM', 'manajer'])) {
-            // MODIFIKASI: Manager melihat SEMUA karyawan di DIVISI-nya (bukan hanya direct subordinate)
-            $latestJob = $me->pekerjaan()->latest('id_pekerjaan')->first();
-            $divisionId = $latestJob ? $latestJob->division_id : null;
+        if (!$user->hasRole(['superadmin', 'admin'])) {
+            if ($user->hasRole(['manager', 'senior_manager', 'GM', 'manajer', 'gm'])) {
+                // Manager melihat SEMUA karyawan di DIVISI-nya
+                $latestJob = $me->pekerjaan()->latest('id_pekerjaan')->first();
+                $divisionId = $latestJob ? $latestJob->division_id : null;
 
-            if ($divisionId) {
-                $query->whereHas('pekerjaan', function($q) use ($divisionId) {
-                    $q->where('division_id', $divisionId);
-                });
+                if ($divisionId) {
+                    $query->whereHas('pekerjaan', function($q) use ($divisionId) {
+                        $q->where('division_id', $divisionId);
+                    });
+                } else {
+                    $query->where('atasan_id', $me->id_karyawan);
+                }
             } else {
-                // Fallback jika tidak punya divisi (misal data kotor), tetap pakai logic lama atau kosongkan
-                $query->where('atasan_id', $me->id_karyawan);
+                // Default untuk staff, hanya lihat diri sendiri
+                $query->where('id_karyawan', $me->id_karyawan);
             }
-        } elseif ($mode === 'manager' && $user->hasRole('staff')) {
-            $query->where('id_karyawan', $me->id_karyawan);
         }
         // Jika mode superadmin, tampilkan semua (tidak ada filter role)
 
@@ -297,7 +298,7 @@ class PerformanceController extends Controller
     {
         $user = Auth::user();
         $tahun = $request->get('tahun', date('Y'));
-        $mode = $request->get('mode', 'manager');
+        $mode = $user->hasRole(['superadmin', 'admin']) ? 'superadmin' : 'manager';
 
         // Validasi akses
         if (!$user->hasRole(['superadmin', 'admin', 'manager', 'gm'])) {
@@ -336,20 +337,21 @@ class PerformanceController extends Controller
         }
 
         // Role-based filtering
-        if ($mode === 'manager' && $user->hasRole(['manager', 'gm', 'manajer', 'senior_manager'])) {
-             // MOD: Manager see all in division
-            $latestJob = $me->pekerjaan()->latest('id_pekerjaan')->first();
-            $divisionId = $latestJob ? $latestJob->division_id : null;
+        if (!$user->hasRole(['superadmin', 'admin'])) {
+            if ($user->hasRole(['manager', 'gm', 'manajer', 'senior_manager'])) {
+                $latestJob = $me->pekerjaan()->latest('id_pekerjaan')->first();
+                $divisionId = $latestJob ? $latestJob->division_id : null;
 
-            if ($divisionId) {
-                $query->whereHas('pekerjaan', function($q) use ($divisionId) {
-                    $q->where('division_id', $divisionId);
-                });
+                if ($divisionId) {
+                    $query->whereHas('pekerjaan', function($q) use ($divisionId) {
+                        $q->where('division_id', $divisionId);
+                    });
+                } else {
+                    $query->where('atasan_id', $me->id_karyawan);
+                }
             } else {
-                $query->where('atasan_id', $me->id_karyawan);
+                $query->where('id_karyawan', $me->id_karyawan);
             }
-        } elseif ($mode === 'manager' && $user->hasRole('staff')) {
-            $query->where('id_karyawan', $me->id_karyawan);
         }
 
         $karyawans = $query->get();
@@ -438,7 +440,7 @@ class PerformanceController extends Controller
     {
         $user = Auth::user();
         $tahun = $request->get('tahun', date('Y'));
-        $mode = $request->get('mode', 'manager','manajer');
+        $mode = $user->hasRole(['superadmin', 'admin']) ? 'superadmin' : 'manager';
 
         // Validasi akses
         if (!$user->hasRole(['superadmin', 'admin', 'manager', 'gm','manajer'])) {
@@ -476,28 +478,30 @@ class PerformanceController extends Controller
             });
         }
 
-        if ($mode === 'manager' && $user->hasRole(['manager', 'gm', 'manajer', 'senior_manager'])) {
-            if (!$me) {
-                $query->whereRaw('1 = 0');
-            } else {
-                // MOD: Manager see all in division
-                $latestJob = $me->pekerjaan()->latest('id_pekerjaan')->first();
-                $divisionId = $latestJob ? $latestJob->division_id : null;
-
-                if ($divisionId) {
-                    $query->whereHas('pekerjaan', function($q) use ($divisionId) {
-                        $q->where('division_id', $divisionId);
-                    });
+        if (!$user->hasRole(['superadmin', 'admin'])) {
+            if ($user->hasRole(['manager', 'gm', 'manajer', 'senior_manager'])) {
+                if (!$me) {
+                    $query->whereRaw('1 = 0');
                 } else {
-                    $query->where('atasan_id', $me->id_karyawan);
+                    $latestJob = $me->pekerjaan()->latest('id_pekerjaan')->first();
+                    $divisionId = $latestJob ? $latestJob->division_id : null;
+
+                    if ($divisionId) {
+                        $query->whereHas('pekerjaan', function($q) use ($divisionId) {
+                            $q->where('division_id', $divisionId);
+                        });
+                    } else {
+                        $query->where('atasan_id', $me->id_karyawan);
+                    }
+                }
+            } else {
+                if (!$me) {
+                    $query->whereRaw('1 = 0');
+                } else {
+                    $query->where('id_karyawan', $me->id_karyawan);
                 }
             }
-        } elseif ($mode === 'manager' && $user->hasRole('staff')) {
-            if (!$me) {
-                $query->whereRaw('1 = 0');
-            } else {
-                $query->where('id_karyawan', $me->id_karyawan);
-            }        }
+        }
 
         $karyawans = $query->get();
 

@@ -28,26 +28,7 @@
             </p>
         </div>
         
-        {{-- Mode Toggle (hanya untuk user dengan multiple roles) --}}
-        @if(auth()->user()->hasRole(['superadmin', 'admin']))
-        <div class="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800">
-            <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Mode:</span>
-            <div class="flex gap-2">
-                <a href="{{ request()->fullUrlWithQuery(['mode' => 'manager']) }}" 
-                   class="rounded px-3 py-1 text-sm font-medium transition {{ $mode === 'manager' 
-                       ? 'bg-blue-600 text-white' 
-                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600' }}">
-                    Manager
-                </a>
-                <a href="{{ request()->fullUrlWithQuery(['mode' => 'superadmin']) }}" 
-                   class="rounded px-3 py-1 text-sm font-medium transition {{ $mode === 'superadmin' 
-                       ? 'bg-blue-600 text-white' 
-                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600' }}">
-                    Superadmin
-                </a>
-            </div>
-        </div>
-        @endif
+
     </div>
 
     {{-- ====================================
@@ -129,26 +110,7 @@
         </div>
     </div>
 
-    {{-- ====================================
-        MODE INDICATOR (Superadmin Mode)
-        ==================================== --}}
-    @if($mode === 'superadmin')
-    <div class="mb-6 rounded-lg border border-purple-200 bg-purple-50 p-4 dark:border-purple-700 dark:bg-purple-900/20">
-        <div class="flex items-start gap-3">
-            <div class="rounded-full bg-purple-200 p-2 dark:bg-purple-800">
-                <svg class="h-5 w-5 text-purple-700 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                </svg>
-            </div>
-            <div class="flex-1">
-                <h4 class="font-semibold text-gray-900 dark:text-white">👑 Mode Superadmin Aktif</h4>
-                <p class="text-sm text-gray-700 dark:text-gray-300 mt-1">
-                    Anda sedang melihat data <strong>semua karyawan</strong> di seluruh organisasi, bukan hanya bawahan langsung Anda.
-                </p>
-            </div>
-        </div>
-    </div>
-    @endif
+
 
     {{-- ====================================
         ANOMALI HIGHLIGHTS
@@ -201,8 +163,7 @@
     <form action="{{ route('performance.rekap') }}" method="GET"
         class="mb-6 rounded-lg border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-900">
         
-        {{-- Hidden input untuk preserve mode --}}
-        <input type="hidden" name="mode" value="{{ $mode }}">
+
         
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-6">
             {{-- Search Input --}}
