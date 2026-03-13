@@ -19,12 +19,12 @@
         </span>
 
         <div class="flex flex-col">
-            <span class="block font-medium text-theme-sm">
+            {{-- <span class="block font-medium text-theme-sm">
                 {{ auth()->user()->name ?? 'Guest' }}
-            </span>
+            </span> --}}
 
             @if(auth()->check() && auth()->user()->roles->count())
-                <span class="mt-1 inline-block w-fit rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                <span class="inline-block w-fit rounded-full bg-gray-100 px-2 py-0.5 text-[10px] text-gray-600 dark:bg-gray-800 dark:text-gray-300">
                     {{ ucwords(str_replace('_',' ', auth()->user()->roles->pluck('name')->first())) }}
                 </span>
             @endif

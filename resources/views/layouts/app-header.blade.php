@@ -71,7 +71,7 @@
 
             {{-- Theme Toggle — desktop always visible, mobile via dropdown --}}
             <button
-                class="hidden xl:flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-150 text-gray-500 dark:text-gray-400"
+                class="flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-150 text-gray-500 dark:text-gray-400"
                 style="border: 1.5px solid #E2E8F0;"
                 onmouseover="this.style.background='#F8FAFC';"
                 onmouseout="this.style.background='transparent';"
@@ -96,6 +96,7 @@
     </div>
 
     {{-- Mobile: theme toggle row (muncul saat 3-dot diklik) --}}
+    
     {{-- Karena notif + user sudah selalu tampil, 3-dot hanya untuk theme toggle --}}
     {{-- Opsional: bisa dihapus jika tidak diperlukan --}}
 
