@@ -6,11 +6,13 @@
     {{-- Header --}}
     <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-            <h2 class="text-title-md2 font-bold text-black dark:text-white">History Pengajuan FPK</h2>
-            <p class="text-sm text-black dark:text-white opacity-60 mt-1">Pantau status pengajuan Form Permintaan Karyawan Anda secara real-time</p>
+            <h1 class="text-title-sm font-bold text-gray-900 dark:text-white/90">History Pengajuan FPK</h1>
+            <p class="mt-1 text-theme-sm text-gray-500 dark:text-gray-400">
+                Pantau status pengajuan Form Permintaan Karyawan Anda secara real-time
+            </p>
         </div>
         <a href="{{ route('rekrutmen.fpk.create') }}"
-           class="inline-flex items-center gap-2 rounded-md bg-primary py-2 px-6 font-medium text-white hover:bg-opacity-90">
+           class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-5 py-2.5 text-theme-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 transition">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
             </svg>
@@ -18,8 +20,12 @@
         </a>
     </div>
 
+    {{-- Success Alert --}}
     @if(session('success'))
-    <div class="mb-5 rounded py-3 px-4 border bg-green-50 border-green-200 text-green-700 font-medium">
+    <div class="mb-5 flex items-center gap-2 rounded-xl border px-4 py-3 text-theme-sm font-medium alert-success">
+        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        </svg>
         {{ session('success') }}
     </div>
     @endif
@@ -33,111 +39,161 @@
     @endphp
 
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div class="rounded-xl border border-stroke bg-white py-5 px-6 shadow-sm dark:border-strokedark dark:bg-boxdark border-t-4 border-t-blue-500">
-            <p class="text-xs font-bold uppercase tracking-widest mb-1 text-blue-500">Total FPK</p>
-            <p class="text-3xl font-extrabold text-black dark:text-white">{{ $total }}</p>
+        <div class="rounded-xl border border-gray-200 bg-white px-5 py-4 shadow-theme-xs dark:border-gray-800 dark:bg-gray-900 stat-border-blue">
+            <p class="text-theme-xs font-semibold uppercase tracking-wide mb-2 text-brand-500">Total FPK</p>
+            <p class="text-title-md font-bold text-gray-900 dark:text-white/90">{{ $total }}</p>
         </div>
-        <div class="rounded-xl border border-stroke bg-white py-5 px-6 shadow-sm dark:border-strokedark dark:bg-boxdark border-t-4 border-t-yellow-500">
-            <p class="text-xs font-bold uppercase tracking-widest mb-1 text-yellow-500">Processing</p>
-            <p class="text-3xl font-extrabold text-yellow-500">{{ $pending }}</p>
+        <div class="rounded-xl border border-gray-200 bg-white px-5 py-4 shadow-theme-xs dark:border-gray-800 dark:bg-gray-900 stat-border-yellow">
+            <p class="text-theme-xs font-semibold uppercase tracking-wide mb-2 text-warning-500">Processing</p>
+            <p class="text-title-md font-bold text-warning-500">{{ $pending }}</p>
         </div>
-        <div class="rounded-xl border border-stroke bg-white py-5 px-6 shadow-sm dark:border-strokedark dark:bg-boxdark border-t-4 border-t-green-500">
-            <p class="text-xs font-bold uppercase tracking-widest mb-1 text-green-500">Approved</p>
-            <p class="text-3xl font-extrabold text-green-500">{{ $approved }}</p>
+        <div class="rounded-xl border border-gray-200 bg-white px-5 py-4 shadow-theme-xs dark:border-gray-800 dark:bg-gray-900 stat-border-green">
+            <p class="text-theme-xs font-semibold uppercase tracking-wide mb-2 text-success-500">Approved</p>
+            <p class="text-title-md font-bold text-success-500">{{ $approved }}</p>
         </div>
-        <div class="rounded-xl border border-stroke bg-white py-5 px-6 shadow-sm dark:border-strokedark dark:bg-boxdark border-t-4 border-t-red-500">
-            <p class="text-xs font-bold uppercase tracking-widest mb-1 text-red-500">Rejected</p>
-            <p class="text-3xl font-extrabold text-red-500">{{ $rejected }}</p>
+        <div class="rounded-xl border border-gray-200 bg-white px-5 py-4 shadow-theme-xs dark:border-gray-800 dark:bg-gray-900 stat-border-red">
+            <p class="text-theme-xs font-semibold uppercase tracking-wide mb-2 text-error-500">Rejected</p>
+            <p class="text-title-md font-bold text-error-500">{{ $rejected }}</p>
         </div>
     </div>
 
     {{-- Tabel --}}
-    <div class="rounded-xl border border-stroke bg-white shadow-sm dark:border-strokedark dark:bg-boxdark overflow-hidden">
-        <div class="px-6 py-4 border-b border-stroke dark:border-strokedark bg-gray-50/50 dark:bg-meta-4/20">
-            <h3 class="font-bold text-black dark:text-white">Riwayat Pengajuan</h3>
+    <div class="rounded-xl border border-gray-200 bg-white shadow-theme-sm dark:border-gray-800 dark:bg-gray-900 overflow-hidden">
+
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+            <h3 class="font-semibold text-gray-800 dark:text-white/90">Riwayat Pengajuan</h3>
         </div>
+
         <div class="max-w-full overflow-x-auto">
             <table class="w-full table-auto">
                 <thead>
-                    <tr class="bg-gray-100 text-left dark:bg-meta-4 border-b border-stroke dark:border-strokedark">
-                        <th class="py-4 px-4 font-bold text-xs uppercase text-gray-500 dark:text-gray-400 xl:pl-11">Nomor FPK</th>
-                        <th class="py-4 px-4 font-bold text-xs uppercase text-gray-500 dark:text-gray-400">Posisi & Level</th>
-                        <th class="py-4 px-4 font-bold text-xs uppercase text-gray-500 dark:text-gray-400 text-center">Status Alur</th>
-                        <th class="py-4 px-4 font-bold text-xs uppercase text-gray-500 dark:text-gray-400 text-center">Aksi</th>
+                    <tr class="border-b border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-800/50">
+                        <th class="py-3 px-4 text-left text-theme-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 xl:pl-10">Nomor FPK</th>
+                        <th class="py-3 px-4 text-left text-theme-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Posisi & Level</th>
+                        <th class="py-3 px-4 text-center text-theme-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Status Alur</th>
+                        <th class="py-3 px-4 text-center text-theme-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Aksi</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-gray-100 dark:divide-strokedark">
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                     @forelse($fpk as $row)
                     @php
-                        $status = $row->status_fpk;
-                        $isRejected = $status === 'Rejected';
-                        $isApproved = $status === 'Approved';
-                        
-                        // Tracker Logic
+                        $status           = $row->status_fpk;
+                        $isRejected       = $status === 'Rejected';
+                        $isApproved       = $status === 'Approved';
                         $atLeastHrDone    = in_array($status, ['Pending Finance Approval', 'Reviewing by HR Manager', 'Approved', 'Rejected']);
                         $atLeastFinDone   = in_array($status, ['Reviewing by HR Manager', 'Approved', 'Rejected']);
                         $atLeastFinalDone = in_array($status, ['Approved', 'Rejected']);
 
-                        $colorActive = '#10B981'; // Green
-                        $colorPending = '#CBD5E1'; // Gray
-                        $colorReject = '#EF4444'; // Red
+                        // Colors pakai CSS variable TailAdmin
+                        $cGreen   = '#12b76a';
+                        $cGray    = '#d0d5dd';
+                        $cRed     = '#f04438';
+                        $cGrayTxt = '#98a2b3';
+                        $cGreenTxt= '#039855';
                     @endphp
-                    <tr class="hover:bg-gray-50 dark:hover:bg-boxdark-2 transition-colors">
-                        <td class="py-5 px-4 pl-9 xl:pl-11">
-                            <p class="font-bold text-primary text-sm">{{ $row->nomor_fpk }}</p>
-                            <p class="text-[10px] text-gray-400 mt-1 uppercase font-semibold">{{ $row->created_at->format('d M Y') }}</p>
+                    <tr class="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors duration-100">
+
+                        {{-- Nomor FPK --}}
+                        <td class="py-5 px-4 xl:pl-10">
+                            <p class="text-theme-sm font-semibold text-brand-500">{{ $row->nomor_fpk }}</p>
+                            <p class="text-[10px] text-gray-400 dark:text-gray-500 mt-1 uppercase font-semibold tracking-wide">
+                                {{ $row->created_at->format('d M Y') }}
+                            </p>
                         </td>
+
+                        {{-- Posisi & Level --}}
                         <td class="py-5 px-4">
-                            <p class="font-bold text-black dark:text-white text-sm">{{ $row->nama_jabatan }}</p>
-                            <span class="inline-block mt-1 px-2 py-0.5 rounded bg-blue-50 text-[10px] font-bold text-blue-600 dark:bg-blue-900/20">{{ $row->level }}</span>
+                            <p class="text-theme-sm font-semibold text-gray-800 dark:text-white/90">{{ $row->nama_jabatan }}</p>
+                            <span class="mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400">
+                                {{ $row->level }}
+                            </span>
                         </td>
+
+                        {{-- Progress Tracker --}}
                         <td class="py-5 px-4">
-                            <div class="flex items-center justify-center gap-1">
-                                {{-- Step 1: Submit --}}
-                                <div class="flex flex-col items-center group">
-                                    <div class="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-white text-[10px] font-bold shadow-sm">✓</div>
-                                    <span class="text-[8px] mt-1 text-gray-400 uppercase font-black">Submit</span>
+                            <div style="display:flex; align-items:center; justify-content:center; gap:0;">
+
+                                {{-- Step 1: Submit (selalu done) --}}
+                                <div style="display:flex; flex-direction:column; align-items:center; gap:3px;">
+                                    <div style="width:24px; height:24px; border-radius:50%; background:{{ $cGreen }}; color:#fff; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800; box-shadow:0 1px 3px rgba(18,183,106,.4);">✓</div>
+                                    <span style="font-size:8px; color:{{ $cGreenTxt }}; text-transform:uppercase; font-weight:800; letter-spacing:.04em; white-space:nowrap;">Submit</span>
                                 </div>
-                                <div class="w-8 h-[2px] mb-4 {{ $atLeastHrDone ? 'bg-green-500' : 'bg-gray-200' }}"></div>
+
+                                {{-- Line 1→2 --}}
+                                <div style="width:24px; height:2px; margin-bottom:16px; background:{{ $atLeastHrDone ? $cGreen : $cGray }};"></div>
 
                                 {{-- Step 2: HR Admin --}}
-                                <div class="flex flex-col items-center">
-                                    <div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold shadow-sm {{ $atLeastHrDone ? 'bg-green-500' : 'bg-gray-200 text-gray-400' }}">
-                                        {{ $atLeastHrDone ? '✓' : '2' }}
-                                    </div>
-                                    <span class="text-[8px] mt-1 {{ $atLeastHrDone ? 'text-green-600' : 'text-gray-400' }} uppercase font-black">HR Admin</span>
+                                <div style="display:flex; flex-direction:column; align-items:center; gap:3px;">
+                                    @if($atLeastHrDone)
+                                        <div style="width:24px; height:24px; border-radius:50%; background:{{ $cGreen }}; color:#fff; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800; box-shadow:0 1px 3px rgba(18,183,106,.4);">✓</div>
+                                        <span style="font-size:8px; color:{{ $cGreenTxt }}; text-transform:uppercase; font-weight:800; letter-spacing:.04em; white-space:nowrap;">HR Admin</span>
+                                    @else
+                                        <div style="width:24px; height:24px; border-radius:50%; background:{{ $cGray }}; color:#fff; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800;">2</div>
+                                        <span style="font-size:8px; color:{{ $cGrayTxt }}; text-transform:uppercase; font-weight:800; letter-spacing:.04em; white-space:nowrap;">HR Admin</span>
+                                    @endif
                                 </div>
-                                <div class="w-8 h-[2px] mb-4 {{ $atLeastFinDone ? 'bg-green-500' : 'bg-gray-200' }}"></div>
+
+                                {{-- Line 2→3 --}}
+                                <div style="width:24px; height:2px; margin-bottom:16px; background:{{ $atLeastFinDone ? $cGreen : $cGray }};"></div>
 
                                 {{-- Step 3: Finance --}}
-                                <div class="flex flex-col items-center">
-                                    <div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold shadow-sm {{ $atLeastFinDone ? 'bg-green-500' : 'bg-gray-200 text-gray-400' }}">
-                                        {{ $atLeastFinDone ? '✓' : '3' }}
-                                    </div>
-                                    <span class="text-[8px] mt-1 {{ $atLeastFinDone ? 'text-green-600' : 'text-gray-400' }} uppercase font-black">Finance</span>
+                                <div style="display:flex; flex-direction:column; align-items:center; gap:3px;">
+                                    @if($atLeastFinDone)
+                                        <div style="width:24px; height:24px; border-radius:50%; background:{{ $cGreen }}; color:#fff; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800; box-shadow:0 1px 3px rgba(18,183,106,.4);">✓</div>
+                                        <span style="font-size:8px; color:{{ $cGreenTxt }}; text-transform:uppercase; font-weight:800; letter-spacing:.04em; white-space:nowrap;">Finance</span>
+                                    @else
+                                        <div style="width:24px; height:24px; border-radius:50%; background:{{ $cGray }}; color:#fff; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800;">3</div>
+                                        <span style="font-size:8px; color:{{ $cGrayTxt }}; text-transform:uppercase; font-weight:800; letter-spacing:.04em; white-space:nowrap;">Finance</span>
+                                    @endif
                                 </div>
-                                <div class="w-8 h-[2px] mb-4 {{ $atLeastFinalDone ? 'bg-green-500' : 'bg-gray-200' }}"></div>
+
+                                {{-- Line 3→4 --}}
+                                <div style="width:24px; height:2px; margin-bottom:16px; background:{{ $atLeastFinalDone ? ($isRejected ? $cRed : $cGreen) : $cGray }};"></div>
 
                                 {{-- Step 4: Final --}}
-                                <div class="flex flex-col items-center">
-                                    @php $finalColor = $isRejected ? 'bg-red-500' : ($isApproved ? 'bg-green-500' : 'bg-gray-200 text-gray-400'); @endphp
-                                    <div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-[10px] font-bold shadow-sm {{ $finalColor }}">
-                                        {{ $isApproved ? '✓' : ($isRejected ? '✗' : '4') }}
-                                    </div>
-                                    <span class="text-[8px] mt-1 uppercase font-black {{ $isRejected ? 'text-red-500' : ($isApproved ? 'text-green-600' : 'text-gray-400') }}">Final</span>
+                                <div style="display:flex; flex-direction:column; align-items:center; gap:3px;">
+                                    @if($isApproved)
+                                        <div style="width:24px; height:24px; border-radius:50%; background:{{ $cGreen }}; color:#fff; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800; box-shadow:0 1px 3px rgba(18,183,106,.4);">✓</div>
+                                        <span style="font-size:8px; color:{{ $cGreenTxt }}; text-transform:uppercase; font-weight:800; letter-spacing:.04em; white-space:nowrap;">Final</span>
+                                    @elseif($isRejected)
+                                        <div style="width:24px; height:24px; border-radius:50%; background:{{ $cRed }}; color:#fff; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800; box-shadow:0 1px 3px rgba(240,68,56,.4);">✗</div>
+                                        <span style="font-size:8px; color:{{ $cRed }}; text-transform:uppercase; font-weight:800; letter-spacing:.04em; white-space:nowrap;">Final</span>
+                                    @else
+                                        <div style="width:24px; height:24px; border-radius:50%; background:{{ $cGray }}; color:#fff; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800;">4</div>
+                                        <span style="font-size:8px; color:{{ $cGrayTxt }}; text-transform:uppercase; font-weight:800; letter-spacing:.04em; white-space:nowrap;">Final</span>
+                                    @endif
                                 </div>
+
                             </div>
                         </td>
+
+                        {{-- Aksi --}}
                         <td class="py-5 px-4 text-center">
                             <a href="{{ route('rekrutmen.fpk.show', $row->id) }}"
-                               class="inline-flex items-center rounded-lg bg-blue-50 py-1.5 px-4 text-xs font-bold text-blue-600 hover:bg-blue-600 hover:text-white transition shadow-sm">
+                               class="inline-flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-theme-xs font-bold transition-all duration-150 act-view">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                </svg>
                                 Detail
                             </a>
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="4" class="py-20 text-center opacity-50 italic">Belum ada riwayat pengajuan.</td>
+                        <td colspan="4" class="py-20 text-center">
+                            <div class="flex flex-col items-center gap-3">
+                                <div class="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
+                                    <svg class="h-7 w-7 text-gray-400 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                </div>
+                                <p class="font-semibold text-gray-800 dark:text-white/90">Belum ada riwayat pengajuan FPK</p>
+                                <a href="{{ route('rekrutmen.fpk.create') }}"
+                                   class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-5 py-2 text-theme-sm font-medium text-white hover:bg-brand-600 transition">
+                                    + Buat Pengajuan Pertama
+                                </a>
+                            </div>
+                        </td>
                     </tr>
                     @endforelse
                 </tbody>
