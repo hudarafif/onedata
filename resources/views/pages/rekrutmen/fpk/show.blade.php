@@ -368,7 +368,7 @@
                 $d = strtolower($job->department->name ?? '');
                 $v = strtolower($job->division->name ?? '');
                 $l = strtolower($job->level->name ?? '');
-                if (str_contains($d, 'hr') || str_contains($v, 'hr')) {
+                if (str_contains($d, 'hr') || str_contains($v, 'hr') || str_contains($d, 'human resource') || str_contains($v, 'human resource')) {
                     $isHR = true;
                     if (str_contains($l, 'manager')) $isHRManager = true;
                 }

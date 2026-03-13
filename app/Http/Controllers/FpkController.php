@@ -34,7 +34,7 @@ class FpkController extends Controller
                     if (str_contains($levelName, 'manager') || str_contains($levelName, 'supervisor') || str_contains($levelName, 'gm') || str_contains($levelName, 'direktur')) {
                         return $next($request);
                     }
-                    if (str_contains($deptName, 'hr') || str_contains($divName, 'hr')) {
+                    if (str_contains($deptName, 'hr') || str_contains($divName, 'hr') || str_contains($deptName, 'human resource') || str_contains($divName, 'human resource')) {
                         return $next($request);
                     }
                     if (str_contains($deptName, 'finance') || str_contains($divName, 'finance')) {
@@ -63,7 +63,12 @@ class FpkController extends Controller
 
         if (!$user->hasRole(['admin', 'superadmin'])) {
             $pekerjaanDesc = $karyawan ? ($karyawan->pekerjaanTerkini()->first() ?? $karyawan->pekerjaan()->first()) : null;
-            $isHR = $pekerjaanDesc && (str_contains(strtolower($pekerjaanDesc->department->name ?? ''), 'human resource') || str_contains(strtolower($pekerjaanDesc->division->name ?? ''), 'human resource'));
+            $isHR = $pekerjaanDesc && (
+                str_contains(strtolower($pekerjaanDesc->department->name ?? ''), 'hr') || 
+                str_contains(strtolower($pekerjaanDesc->division->name ?? ''), 'hr') ||
+                str_contains(strtolower($pekerjaanDesc->department->name ?? ''), 'human resource') || 
+                str_contains(strtolower($pekerjaanDesc->division->name ?? ''), 'human resource')
+            );
 
             if (!$isHR) {
                 $deptId = $pekerjaanDesc ? $pekerjaanDesc->department_id : null;
@@ -253,7 +258,7 @@ class FpkController extends Controller
 
     public function approveHrAdmin($id)
     {
-        $this->checkRole('human resource');
+        $this->checkRole('hr');
         $fpk = Fpk::with('creator')->findOrFail($id);
         if ($fpk->status_fpk !== 'Pending HR Admin') abort(403);
 
@@ -379,9 +384,9 @@ class FpkController extends Controller
         $div  = strtolower($pekerjaan->division->name ?? '');
         $level = strtolower($pekerjaan->level->name ?? '');
 
-        if ($roleType === 'hr' && (str_contains($dept, 'human resource') || str_contains($div, 'human resource'))) return;
+        if ($roleType === 'hr' && (str_contains($dept, 'hr') || str_contains($div, 'hr') || str_contains($dept, 'human resource') || str_contains($div, 'human resource'))) return;
         if ($roleType === 'finance' && (str_contains($dept, 'finance') || str_contains($div, 'finance'))) return;
-        if ($roleType === 'hr_manager' && (str_contains($dept, 'human resource') || str_contains($div, 'human resource')) && str_contains($level, 'manager')) return;
+        if ($roleType === 'hr_manager' && (str_contains($dept, 'hr') || str_contains($div, 'hr') || str_contains($dept, 'human resource') || str_contains($div, 'human resource')) && str_contains($level, 'manager')) return;
 
         abort(403, 'Akses Ditolak. Anda tidak punya izin untuk aksi ini.');
     }
