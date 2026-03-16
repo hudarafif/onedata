@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\PegawaiKompetensi;
 use App\Models\Karyawan;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Log;
 
 class KompetensiController extends Controller
 {
@@ -47,6 +49,93 @@ class KompetensiController extends Controller
         $listLevel = PegawaiKompetensi::select('level')->whereNotNull('level')->distinct()->pluck('level');
 
         return view('pages.kompetensi.index', compact('kompetensiList', 'listLevel'));
+    }
+
+    /**
+     * Trigger Manual Sync from LMS Wadja
+     */
+    public function sync()
+    {
+        $user = Auth::user();
+        if (!$this->roleMatches($user, ['admin', 'superadmin'])) {
+            return response()->json(['success' => false, 'message' => 'Hanya Admin yang dapat melakukan sinkronisasi.'], 403);
+        }
+
+        try {
+            Artisan::call('wadja:sync-competency');
+            $output = Artisan::output();
+            
+            return response()->json([
+                'success' => true, 
+                'message' => 'Sinkronisasi berhasil dimulai.',
+                'details' => $output
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Manual Sync Error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false, 
+                'message' => 'Gagal menjalankan sinkronisasi: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Export Competency Data to CSV
+     */
+    public function export(Request $request)
+    {
+        $user = Auth::user();
+        if (!$this->roleMatches($user, ['admin', 'superadmin', 'manager', 'GM', 'senior_manager', 'direktur'])) {
+            abort(403);
+        }
+
+        $query = Karyawan::with(['pegawaiKompetensi', 'pekerjaan.department'])
+            ->whereHas('pegawaiKompetensi');
+
+        // Apply filters same as index
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('Nama_Lengkap_Sesuai_Ijazah', 'LIKE', "%{$search}%")
+                  ->orWhere('NIK', 'LIKE', "%{$search}%");
+            });
+        }
+
+        $employees = $query->get();
+
+        $filename = "Monitoring_Kompetensi_" . date('Ymd_His') . ".csv";
+        $headers = [
+            "Content-type"        => "text/csv",
+            "Content-Disposition" => "attachment; filename=$filename",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        ];
+
+        $callback = function() use ($employees) {
+            $file = fopen('php://output', 'w');
+            // Header CSV
+            fputcsv($file, ['Nama Lengkap', 'NIK', 'Kelas', 'Kompetensi Tersedia', 'Kompetensi Diselesaikan']);
+
+            foreach ($employees as $emp) {
+                $job = $emp->pekerjaanTerkini()->first() ?? $emp->pekerjaan()->first();
+                $kelas = $job->department->name ?? '-';
+                
+                $tersedia = $emp->pegawaiKompetensi->where('status', 'available')->pluck('nama_kompetensi')->unique()->implode(', ');
+                $diselesaikan = $emp->pegawaiKompetensi->where('status', 'completed')->pluck('nama_kompetensi')->unique()->implode(', ');
+
+                fputcsv($file, [
+                    $emp->Nama_Lengkap_Sesuai_Ijazah,
+                    $emp->NIK,
+                    $kelas,
+                    $tersedia ?: '-',
+                    $diselesaikan ?: '-'
+                ]);
+            }
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 
     // Helper: Role Checker

@@ -15,6 +15,7 @@ class PegawaiKompetensi extends Model
     protected $fillable = [
         'karyawan_id',
         'nama_kompetensi',
+        'status',
         'level',
         'sumber',
     ];

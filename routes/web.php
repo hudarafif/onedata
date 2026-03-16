@@ -245,8 +245,10 @@ Route::post('/kpi/update/{id}', [KpiAssessmentController::class , 'update'])->na
 
 Route::post('/kpi/{id}/finalize', [App\Http\Controllers\KpiAssessmentController::class , 'finalize'])->name('kpi.finalize');
 
-// --- KOMPETENSI LMS ROUTES ---
-Route::get('/kompetensi/monitoring', [App\Http\Controllers\KompetensiController::class, 'index'])->name('kompetensi.monitoring');
+// --- KOMPETENSI    // Monitoring Kompetensi
+    Route::get('/kompetensi/monitoring', [App\Http\Controllers\KompetensiController::class, 'index'])->name('kompetensi.monitoring');
+    Route::post('/kompetensi/sync', [App\Http\Controllers\KompetensiController::class, 'sync'])->name('kompetensi.sync');
+    Route::get('/kompetensi/export', [App\Http\Controllers\KompetensiController::class, 'export'])->name('kompetensi.export');
 
 // --- KBI ROUTES ---
 // 1. Dashboard KBI (Menu Utama untuk memilih siapa yang dinilai)

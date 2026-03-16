@@ -56,6 +56,7 @@ class SyncWadjaPegawaiCompetency extends Command
         }
         
         $this->info("Menemukan {$totalItems} baris data kompetensi. Melakukan update lokal...");
+        Log::info("Wadja Sync: Processing {$totalItems} employees.");
 
         $successCount = 0;
         foreach ($listsOfData as $row) {
@@ -65,24 +66,50 @@ class SyncWadjaPegawaiCompetency extends Command
             // Cari Karyawan Lokal berdasarkan NIK
             $karyawan = Karyawan::where('NIK', $rawNik)->first();
             
-            // Jika Karyawan ditemukan dan dia memiliki array kompetensi_diselesaikan
-            if ($karyawan && isset($row['kompetensi_diselesaikan']) && is_array($row['kompetensi_diselesaikan'])) {
-                foreach ($row['kompetensi_diselesaikan'] as $itemKomp) {
-                    $namaKomp = $itemKomp['nama'] ?? 'Tidak Diketahui';
-                    $jenisKomp = $itemKomp['jenis'] ?? null; // Memanfaatkan kolom 'level' untuk menyimpan jenis (Fungsional, dll)
+            if (!$karyawan) {
+                Log::warning("Wadja Sync: Karyawan with NIK {$rawNik} not found locally.");
+                continue;
+            }
 
-                    // Upsert Pegawai Kompetensi per baris sertifikat
+            // 1. Process Kompetensi Tersedia (Pool)
+            if (isset($row['kompetensi_tersedia']) && is_array($row['kompetensi_tersedia'])) {
+                foreach ($row['kompetensi_tersedia'] as $itemKomp) {
+                    $namaKomp = $itemKomp['nama'] ?? 'Tidak Diketahui';
+                    $jenisKomp = $itemKomp['jenis'] ?? null; 
+                    $status = $itemKomp['status'] ?? 'available';
+
                     PegawaiKompetensi::updateOrCreate(
                         [
                             'karyawan_id' => $karyawan->id_karyawan,
-                            'nama_kompetensi' => $namaKomp, // Mencegah duplikat kompetensi yang sama per karyawan
+                            'nama_kompetensi' => $namaKomp,
                         ],
                         [
                             'level' => $jenisKomp, 
+                            'status' => $status,
                             'sumber' => 'LMS Wadja',
                         ]
                     );
                     $successCount++;
+                }
+            }
+
+            // 2. Process Kompetensi Diselesaikan (Gantian / Tambahan)
+            // Note: According to API docs, 'kompetensi_diselesaikan' is a subset.
+            // We ensure they are marked as 'completed' if they appear here.
+            if (isset($row['kompetensi_diselesaikan']) && is_array($row['kompetensi_diselesaikan'])) {
+                foreach ($row['kompetensi_diselesaikan'] as $itemKomp) {
+                    $namaKomp = $itemKomp['nama'] ?? 'Tidak Diketahui';
+                    
+                    PegawaiKompetensi::updateOrCreate(
+                        [
+                            'karyawan_id' => $karyawan->id_karyawan,
+                            'nama_kompetensi' => $namaKomp,
+                        ],
+                        [
+                            'status' => 'completed',
+                            'sumber' => 'LMS Wadja',
+                        ]
+                    );
                 }
             }
         }
