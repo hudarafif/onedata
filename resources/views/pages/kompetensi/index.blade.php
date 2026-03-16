@@ -76,7 +76,7 @@
                         <th class="px-5 py-3 text-theme-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Peringkat</th>
                         <th class="px-5 py-3 text-theme-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Nama</th>
                         <th class="px-5 py-3 text-theme-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">NIP</th>
-                        <th class="px-5 py-3 text-theme-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Kelas</th>
+                        <th class="px-5 py-3 text-theme-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Divisi</th>
                         <th class="px-5 py-3 text-theme-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Kompetensi Tersedia</th>
                         <th class="px-5 py-3 text-theme-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Kompetensi Diselesaikan</th>
                     </tr>
@@ -93,7 +93,7 @@
                         // Rank styling
                         $rankBg = match($rank) {
                             1 => '#F59E0B',
-                            2 => '#94A3B8',
+                            2 => '#a7b6cbff',
                             3 => '#F97316',
                             default => '#D1D5DB'
                         };
