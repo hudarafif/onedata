@@ -78,5 +78,54 @@ class AppServiceProvider extends ServiceProvider
             return $user->hasRole(['admin', 'superadmin', 'ketua_tempa']);
         });
         Gate::policy(\App\Models\TempaKelompok::class, \App\Policies\TempaKelompokPolicy::class);
+
+        // --- VIEW COMPOSER FOR DYNAMIC HEADER TITLE ---
+        \Illuminate\Support\Facades\View::composer('*', function ($view) {
+            if (!$view->offsetExists('title')) {
+                $path = request()->path();
+                $title = 'Dashboard'; // Default
+
+                // Mapping URL ke Judul (Case Insensitive)
+                $mappings = [
+                    'users' => 'Manajemen User',
+                    'karyawan' => 'Data Karyawan',
+                    'rekrutmen/fpk' => 'Pengajuan FPK',
+                    'rekrutmen/fpk/history' => 'History FPK',
+                    'rekrutmen/posisi-manage' => 'Manage Posisi',
+                    'rekrutmen/kandidat' => 'Manage Kandidat',
+                    'rekrutmen' => 'Dashboard Rekrutmen',
+                    'training' => 'Training',
+                    'onboarding' => 'Onboarding Karyawan',
+                    'turnover' => 'Data Turnover',
+                    'kpi/dashboard' => 'KPI Karyawan',
+                    'kbi/dashboard' => 'KBI Karyawan',
+                    'kbi/monitoring' => 'Monitoring KBI',
+                    'performance/rekap' => 'Rekap Performance',
+                    'kompetensi/monitoring' => 'Monitoring Kompetensi',
+                    'organization/holding' => 'Struktur Holding',
+                    'organization/company' => 'Struktur Perusahaan',
+                    'organization/subsidiary' => 'Anak Perusahaan',
+                    'organization/division' => 'Struktur Divisi',
+                    'organization/department' => 'Struktur Departemen',
+                    'organization/unit' => 'Struktur Unit',
+                    'organization/level' => 'Level Jabatan',
+                    'tempa/kelompok' => 'Kelompok TEMPA',
+                    'tempa/peserta' => 'Peserta TEMPA',
+                    'tempa/absensi' => 'Absensi TEMPA',
+                    'tempa/monitoring' => 'Monitoring TEMPA',
+                    'tempa/materi' => 'Materi TEMPA',
+                    'materi' => 'Materi',
+                ];
+
+                foreach ($mappings as $route => $name) {
+                    if (request()->is($route) || request()->is($route . '/*')) {
+                        $title = $name;
+                        break;
+                    }
+                }
+
+                $view->with('title', $title);
+            }
+        });
     }
 }

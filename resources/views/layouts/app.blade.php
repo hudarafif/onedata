@@ -7,7 +7,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <!-- <title>{{ $title ?? 'Dashboard' }} | ONE DATA HR</title> -->
-    <title>One Data</title>
+    <title>{{ $title ?? 'Dashboard' }} | One Data</title>
     <link rel="icon" type="image/png" href="{{ asset('logo.png') }}">
     <!-- Scripts -->
     @php $viteManifest = public_path('build/manifest.json'); @endphp

@@ -57,7 +57,7 @@
         <div class="hidden xl:flex items-center gap-2 text-sm">
             <span class="font-medium text-black dark:text-dark">HR System</span>
             <span style="color:#CBD5E1;">/</span>
-            <span class="font-semibold text-black dark:text-dark">Dashboard</span>
+            <span class="font-semibold text-black dark:text-dark">{{ $title ?? 'Dashboard' }}</span>
         </div>
 
         {{-- ===== RIGHT ===== --}}
