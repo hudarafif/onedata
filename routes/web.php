@@ -41,7 +41,7 @@ Route::get('/signin', function () {
     return view('pages.auth.signin', ['title' => 'Sign In']);
 })->name('signin');
 
-Route::post('/signin', [AuthController::class , 'login'])->name('signin.post');
+Route::post('/signin', [AuthController::class , 'login'])->middleware('throttle:5,1')->name('signin.post');
 Route::post('/signout', [AuthController::class , 'logout'])->name('signout');
 
 // Dashboard home (require auth)
@@ -59,11 +59,13 @@ Route::middleware(['auth'])->group(function () {
 // });
 });
 
-// API routes for hierarchical dropdowns (no auth required for AJAX calls)
-Route::get('karyawan/divisions/{companyId}', [KaryawanController::class , 'getDivisions'])->name('karyawan.divisions');
-Route::get('karyawan/departments/{divisionId}', [KaryawanController::class , 'getDepartments'])->name('karyawan.departments');
-Route::get('karyawan/units/{departmentId}', [KaryawanController::class , 'getUnits'])->name('karyawan.units');
-Route::get('karyawan/positions/{unitId}', [KaryawanController::class , 'getPositions'])->name('karyawan.positions');
+// API routes for hierarchical dropdowns (protected by auth middleware)
+Route::middleware(['auth'])->group(function () {
+    Route::get('karyawan/divisions/{companyId}', [KaryawanController::class , 'getDivisions'])->name('karyawan.divisions');
+    Route::get('karyawan/departments/{divisionId}', [KaryawanController::class , 'getDepartments'])->name('karyawan.departments');
+    Route::get('karyawan/units/{departmentId}', [KaryawanController::class , 'getUnits'])->name('karyawan.units');
+    Route::get('karyawan/positions/{unitId}', [KaryawanController::class , 'getPositions'])->name('karyawan.positions');
+});
 
 Route::middleware(['auth', 'role:admin|superadmin'])->group(function () {
     // --- KARYAWAN MANAGEMENT ---
@@ -176,16 +178,6 @@ Route::middleware(['auth'])->prefix('rekrutmen')->name('rekrutmen.')->group(func
             Route::get('/export-pdf', [TurnoverController::class , 'exportPdf'])->name('export.pdf');
         }
         );
-    // Route::middleware(['auth', 'role:admin|superadmin|manager|senior_manager'])->group(function () {
-    //     // User management resource
-    //     // 7. monitoring
-    //     Route::get('/kbi/monitoring', [App\Http\Controllers\KbiController::class, 'monitoring'])->name('kbi.monitoring');
-    //     // --- rekap PERFORMANCE ROUTES ---
-    //     Route::get('/performance/rekap', [App\Http\Controllers\PerformanceController::class, 'index'])->name('performance.rekap');
-    // });
-    // Route::resource('wig-rekrutmen', WigRekrutmenController::class);
-    
-    // Route::resource('karyawan', KaryawanController::class);   
     
     
 Route::middleware(['auth', 'role:admin|superadmin'])->prefix('kpi')->name('kpi.')->group(function () {

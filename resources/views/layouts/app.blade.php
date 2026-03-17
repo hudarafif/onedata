@@ -258,12 +258,14 @@
             <div class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6">
                 @yield('content')
             </div>
+
+            <!-- app footer start -->
+            <footer class="flex items-center justify-center py-6 text-sm text-gray-500 border-t border-gray-200 dark:border-gray-800">
+                © 2026 Wadja. All rights reserved.
+            </footer>
+            <!-- app footer end -->
         </div>
     </div>
-    <footer class="xl:flex items-center justify-center py-4 text-sm text-gray-500 border-t">
-        © 2026 Wadja. All rights reserved.
-    </footer>
-
 </body>
 
 <script>
