@@ -243,6 +243,24 @@ class FpkController extends Controller
         return redirect()->route('rekrutmen.fpk.index')->with('success', 'FPK berhasil dihapus.');
     }
 
+    public function bulkDelete(Request $request)
+    {
+        $ids = $request->input('ids', []);
+        if (empty($ids)) {
+            return response()->json(['success' => false, 'message' => 'Tidak ada item yang dipilih.'], 400);
+        }
+
+        // Hanya hapus yang berstatus Draft
+        $deletedCount = Fpk::whereIn('id', $ids)
+            ->where('status_fpk', 'Draft')
+            ->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Berhasil menghapus $deletedCount data FPK (hanya status Draft)."
+        ]);
+    }
+
     public function submit($id)
     {
         $fpk = Fpk::findOrFail($id);

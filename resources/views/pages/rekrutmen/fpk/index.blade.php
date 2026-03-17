@@ -72,13 +72,27 @@
 
         {{-- TOP BAR --}}
         <div class="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-b border-gray-200 dark:border-gray-800">
-            <p class="text-theme-sm text-gray-500 dark:text-gray-400">
-                Menampilkan
-                <span class="font-semibold text-gray-800 dark:text-white/90">{{ $fpk->firstItem() ?? 0 }} – {{ $fpk->lastItem() ?? 0 }}</span>
-                dari
-                <span class="font-semibold text-gray-800 dark:text-white/90">{{ $fpk->total() }}</span>
-                pengajuan
-            </p>
+            <div class="flex items-center gap-4">
+                <p class="text-theme-sm text-gray-500 dark:text-gray-400">
+                    Menampilkan
+                    <span class="font-semibold text-gray-800 dark:text-white/90">{{ $fpk->firstItem() ?? 0 }} – {{ $fpk->lastItem() ?? 0 }}</span>
+                    dari
+                    <span class="font-semibold text-gray-800 dark:text-white/90">{{ $fpk->total() }}</span>
+                    pengajuan
+                </p>
+                
+                {{-- Bulk Actions --}}
+                <div id="bulk-actions" class="hidden flex items-center gap-2 border-l border-gray-200 pl-4 dark:border-gray-800">
+                    <span class="text-theme-xs font-medium text-gray-500 dark:text-gray-400"><span id="selected-count">0</span> Terpilih</span>
+                    <button type="button" id="btn-bulk-delete" 
+                            class="inline-flex items-center gap-1.5 rounded-lg bg-error-50 px-3 py-1.5 text-theme-xs font-semibold text-error-600 transition hover:bg-error-100 dark:bg-error-500/10 dark:text-error-400 dark:hover:bg-error-500/20">
+                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                        Hapus Draft
+                    </button>
+                </div>
+            </div>
             <div class="relative">
                 <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500 pointer-events-none"
                      fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -99,7 +113,10 @@
             <table class="w-full min-w-full" id="fpk-table">
                 <thead>
                     <tr class="border-b border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-800/50">
-                        <th class="px-4 py-3 text-left text-theme-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 xl:pl-10">Nomor FPK</th>
+                        <th class="px-4 py-3 text-left xl:pl-10">
+                            <input type="checkbox" id="select-all" class="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800">
+                        </th>
+                        <th class="px-4 py-3 text-left text-theme-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Nomor FPK</th>
                         <th class="px-4 py-3 text-left text-theme-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Posisi</th>
                         <th class="px-4 py-3 text-left text-theme-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Divisi</th>
                         <th class="px-4 py-3 text-left text-theme-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Status</th>
@@ -132,6 +149,11 @@
                         $isPulse = !in_array($row->status_fpk, ['Approved', 'Rejected', 'Draft']);
                     @endphp
                     <tr class="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors duration-100">
+                        <td class="px-4 py-4 xl:pl-10">
+                            <input type="checkbox" name="ids[]" value="{{ $row->id }}" 
+                                   class="row-checkbox h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800"
+                                   {{ $row->status_fpk !== 'Draft' ? 'disabled' : '' }}>
+                        </td>
 
                         {{-- Nomor FPK --}}
                         <td class="px-4 py-4 xl:pl-10">
@@ -239,13 +261,102 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-document.getElementById('fpk-search')?.addEventListener('input', function () {
-    const q = this.value.toLowerCase().trim();
-    document.querySelectorAll('#fpk-table tbody tr').forEach(row => {
-        if (row.querySelector('td[colspan]')) return;
-        row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+document.addEventListener('DOMContentLoaded', function () {
+    const selectAll = document.getElementById('select-all');
+    const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+    const bulkActions = document.getElementById('bulk-actions');
+    const selectedCount = document.getElementById('selected-count');
+    const btnBulkDelete = document.getElementById('btn-bulk-delete');
+    const fpkSearch = document.getElementById('fpk-search');
+
+    function updateBulkActions() {
+        const checkedCount = document.querySelectorAll('.row-checkbox:checked').length;
+        selectedCount.innerText = checkedCount;
+        if (checkedCount > 0) {
+            bulkActions.classList.remove('hidden');
+        } else {
+            bulkActions.classList.add('hidden');
+        }
+    }
+
+    if (selectAll) {
+        selectAll.addEventListener('change', function () {
+            rowCheckboxes.forEach(cb => {
+                if (!cb.disabled) {
+                    cb.checked = selectAll.checked;
+                }
+            });
+            updateBulkActions();
+        });
+    }
+
+    rowCheckboxes.forEach(cb => {
+        cb.addEventListener('change', function () {
+            const allChecked = Array.from(rowCheckboxes).every(c => c.disabled || c.checked);
+            if (selectAll) selectAll.checked = allChecked;
+            updateBulkActions();
+        });
     });
+
+    if (btnBulkDelete) {
+        btnBulkDelete.addEventListener('click', function () {
+            const selectedIds = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
+            
+            Swal.fire({
+                title: 'Hapus Draft Terpilih?',
+                text: `Anda akan menghapus ${selectedIds.length} pengajuan FPK berstatus Draft.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#f04438',
+                cancelButtonColor: '#667085',
+                confirmButtonText: 'Ya, Hapus Semua',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    btnBulkDelete.disabled = true;
+                    
+                    fetch("{{ route('rekrutmen.fpk.bulk-delete') }}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({ ids: selectedIds })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire('Berhasil!', data.message, 'success').then(() => {
+                                window.location.reload();
+                            });
+                        } else {
+                            Swal.fire('Gagal!', data.message, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire('Error!', 'Terjadi kesalahan sistem.', 'error');
+                    })
+                    .finally(() => {
+                        btnBulkDelete.disabled = false;
+                    });
+                }
+            });
+        });
+    }
+
+    // Search filter
+    if (fpkSearch) {
+        fpkSearch.addEventListener('input', function () {
+            const q = this.value.toLowerCase().trim();
+            document.querySelectorAll('#fpk-table tbody tr').forEach(row => {
+                if (row.querySelector('td[colspan]')) return;
+                row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+            });
+        });
+    }
 });
 </script>
 @endsection

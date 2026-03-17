@@ -259,8 +259,10 @@
                 @yield('content')
             </div>
         </div>
-
     </div>
+    <footer class="xl:flex items-center justify-center py-4 text-sm text-gray-500 border-t">
+        © 2026 Wadja. All rights reserved.
+    </footer>
 
 </body>
 
