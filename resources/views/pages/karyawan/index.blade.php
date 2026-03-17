@@ -1,8 +1,7 @@
+
 @extends('layouts.app')
 
 @section('content')
-
-<div class="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10">
 
     <!-- HEADER -->
     <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
@@ -501,7 +500,6 @@ Password: ${password}
                 <div class="flex items-center gap-3">
                     <span class="text-sm text-gray-500 dark:text-gray-400">Menampilkan {{ $karyawans->firstItem() ?? 0 }} sampai {{ $karyawans->lastItem() ?? 0 }} dari {{ $karyawans->total() }} data</span>
                 </div>
-                <div class="flex flex-wrap items-center justify-between gap-3 px-6 py-4">
                 <div class="flex items-center gap-3">
                     <span class="text-sm text-gray-500 dark:text-gray-400">Show</span>
                     <div class="relative z-20">
@@ -525,7 +523,6 @@ Password: ${password}
                         </span>
                     </div>
                     <span class="text-sm text-gray-500 dark:text-gray-400">entries</span>
-                </div>
                 </div>
 
                 <div class="flex items-center gap-2">
@@ -660,7 +657,6 @@ Password: ${password}
         </div>
     </div>
     </form>
-</div>
 
 <script>
 function toggleFilter() {
